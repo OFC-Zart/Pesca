@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
-import { DIAS_GUARDAR_PREVISOES, LOCAIS_PADRAO, MEDICOES_PARA_CALIBRAR, type TipoAgua } from "@/config/indice";
-import { regressao } from "@/lib/indice/calculo";
+import { DIAS_GUARDAR_PREVISOES, LOCAIS_PADRAO, type TipoAgua } from "@/config/indice";
+import { calibrar } from "@/lib/indice/agua";
 import type { Local } from "@/lib/indice/tipos";
 import type { EntradaSaida } from "@/lib/esquemas";
 import { getDb } from "./index";
@@ -28,7 +28,7 @@ export async function criarLocal(l: Omit<Local, "calibA" | "calibB" | "calibN">)
   await db.insert(locais).values(l);
 }
 
-export async function gravarSaida(s: EntradaSaida, snapshot: { nota: number | null; fatores: unknown; mediaAr: number | null }, usuarioId: number | null = null) {
+export async function gravarSaida(s: EntradaSaida, snapshot: { nota: number | null; fatores: unknown; aguaModelo: number | null }, usuarioId: number | null = null) {
   const db = getDb();
   if (!db) throw new Error("Banco não configurado");
 
@@ -60,23 +60,23 @@ export async function gravarSaida(s: EntradaSaida, snapshot: { nota: number | nu
       localId: s.localId,
       medidoEm: new Date(`${s.data}T${s.inicio}:00-03:00`),
       temperatura: s.tempAgua,
-      mediaAr: snapshot.mediaAr,
+      aguaModelo: snapshot.aguaModelo,
     });
     await recalibrarLocal(s.localId);
   }
   return { duplicada: false };
 }
 
-/** A partir de 10 medições, a regressão do local substitui a estimativa pelo tipo de água. */
+/** Corrige o modelo com o termômetro do local: desvio médio com poucas medições, reta inteira com muitas. */
 export async function recalibrarLocal(localId: string) {
   const db = getDb();
   if (!db) return;
   const pontos = await db
-    .select({ x: medicoesAgua.mediaAr, y: medicoesAgua.temperatura })
+    .select({ x: medicoesAgua.aguaModelo, y: medicoesAgua.temperatura })
     .from(medicoesAgua)
-    .where(and(eq(medicoesAgua.localId, localId), isNotNull(medicoesAgua.mediaAr)));
+    .where(and(eq(medicoesAgua.localId, localId), isNotNull(medicoesAgua.aguaModelo)));
   const validos = pontos.map((p) => ({ x: p.x as number, y: p.y }));
-  const ajuste = validos.length >= MEDICOES_PARA_CALIBRAR ? regressao(validos) : null;
+  const ajuste = calibrar(validos);
   await db
     .update(locais)
     .set({ calibA: ajuste?.a ?? null, calibB: ajuste?.b ?? null, calibN: validos.length })

@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import { CardumeConfianca, Peixe, PeixeEspecie } from "@/components/Peixes";
 import { TituloPagina } from "@/components/TituloPagina";
 import { TituloSecao } from "@/components/TituloSecao";
-import { ESCALA, ESPECIES, ESPECIE_IDS, LEGENDA_PERIODO, PESOS, type FatorId } from "@/config/indice";
+import { ESCALA, ESPECIES, ESPECIE_IDS, LEGENDA_PERIODO, PESOS, type CondicaoId } from "@/config/indice";
 import { SITE } from "@/config/site";
 import { COR_NOTA } from "@/lib/formato";
 import type { NivelConfianca } from "@/lib/indice/tipos";
@@ -13,14 +13,13 @@ import { COR_ESPECIE, COR_FATOR, ICONE_FATOR } from "@/lib/visual";
 
 export const metadata: Metadata = { title: "Como funciona" };
 
-const FATORES: { id: FatorId; nome: string; texto: string }[] = [
-  { id: "agua", nome: "Água", texto: "O que mais pesa. A temperatura controla o metabolismo e a fome, e cada espécie tem a sua curva." },
-  { id: "pressao", nome: "Pressão", texto: "Não afeta o peixe direto, mas denuncia frente fria quando sobe rápido." },
-  { id: "tendencia", nome: "Tendência", texto: "Água esquentando rumo ao ótimo ajuda. Queda de mais de 3 °C em 48 h atrapalha." },
+const CONDICOES: { id: CondicaoId; nome: string; texto: string }[] = [
+  { id: "tendencia", nome: "Tendência da água", texto: "Água esfriando de repente, como numa frente fria, faz o peixe parar de comer." },
   { id: "vento", nome: "Vento", texto: "Leve a moderado mexe a água, oxigena e reduz a luz." },
-  { id: "chuva", nome: "Chuva", texto: "Chuva forte embarra a água e atrapalha quem caça com a visão." },
-  { id: "nuvens", nome: "Nuvens", texto: "De 40 a 80% é o ideal para a maioria das espécies." },
-  { id: "lua", nome: "Lua", texto: "Está aqui, mas pequena. Os estudos mostram pouco efeito." },
+  { id: "chuva", nome: "Chuva", texto: "Chuva forte embarra a água. Pesa mais para quem caça com a visão." },
+  { id: "nuvens", nome: "Nuvens", texto: "De dia, de 40 a 80% é o ideal para a maioria das espécies." },
+  { id: "pressao", nome: "Pressão", texto: "Sem prova de efeito direto. Entra porque denuncia a frente fria." },
+  { id: "lua", nome: "Lua", texto: "Está aqui, mas pequena: os estudos mostram pouco efeito." },
 ];
 
 const NIVEIS: { nivel: NivelConfianca; nome: string; texto: string }[] = [
@@ -30,13 +29,17 @@ const NIVEIS: { nivel: NivelConfianca; nome: string; texto: string }[] = [
 ];
 
 const FONTES = [
+  "Epagri: Avaliação do potencial para a piscicultura continental em Santa Catarina (faixas de temperatura por espécie)",
+  "Epagri: água medida em Caçador, de março a setembro de 2009 (livro do jundiá, cap. II)",
   "Popular solunar tables fail to predict fishing success (SN Applied Sciences, 2023)",
   "Kuparinen et al. 2010: correlatos de captura do lúcio",
   "Shaw et al. 2021: walleye e muskellunge (PLoS ONE)",
-  "Traíra e temperatura da água (UFPel)",
-  "Jundiá: crescimento × temperatura (Instituto de Pesca)",
-  "Ictiofauna do alto Uruguai e Rio Canoas (PUCRS, 1989)",
-  "Temperatura de rio a partir do ar (UFPR) e limites do modelo (Arismendi et al. 2014)",
+  "Manns: captura de bass ao entardecer (In-Fisherman)",
+  "Traíra e temperatura da água (UFPel) e consumo de presas em juvenis (Alto Paraná)",
+  "Jundiá: crescimento × temperatura (Piedras 2004) e faixas da Epagri",
+  "Tilápia: alimentação abaixo de 16 °C (El-Sayed 1996; Abdel-Ghany 2019) e Kubitza",
+  "Carpa capim e black bass: USFWS e revisão em Water (2023)",
+  "Boyd (Auburn): temperatura da água em viveiros",
   "Piracema 2026/27 na bacia do Uruguai: regras da Polícia Militar Ambiental",
 ];
 
@@ -53,27 +56,51 @@ export default function Pagina() {
   return (
     <>
       <Image src="/logo-completo.png" alt={SITE.nome} width={555} height={494} unoptimized className="mx-auto mb-6 h-auto w-52 sm:w-60" />
-      <TituloPagina titulo="A lua não pesca por você" cor="#ffe6a0" sub={`${SITE.nome} vem de ${SITE.significado}. A nota sai de estudos com pescadores de verdade, não de tabela solunar.`} />
+      <TituloPagina titulo="A lua não pesca por você" cor="#ffe6a0" sub={`${SITE.nome} vem de ${SITE.significado}. A nota sai de estudos e de medições, não de tabela solunar.`} />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-2 lg:gap-x-10">
         <Bloco titulo="A conta" Icone={Calculator} cor="#a9cb54">
-          <p>Cada fator vira uma nota de 0 a 1 e entra com o seu peso. A soma, vezes 100, é a nota do dia.</p>
+          <p>
+            A nota multiplica três coisas, hora por hora: <strong className="font-semibold text-osso">água × horário × condições</strong>. Como é multiplicação, água fora da faixa derruba a nota sozinha, porque
+            peixe sem apetite não morde, por melhor que esteja o vento. A nota do dia é a média das 4 melhores horas.
+          </p>
           <ul className="painel divide-y divide-osso/10">
-            {FATORES.map((f, i) => {
+            <li className="flex gap-3 p-3.5" style={{ "--acento": COR_FATOR.agua } as CSSProperties}>
+              <span className="icone-chip size-10">
+                <Thermometer size={20} aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <strong className="font-semibold">Água</strong>
+                <p className="mt-0.5 text-sm text-pedra">O apetite do peixe naquela temperatura, de 0 a 100%. Cada espécie tem sua curva.</p>
+              </div>
+            </li>
+            <li className="flex gap-3 p-3.5" style={{ "--acento": "#f2a93b" } as CSSProperties}>
+              <span className="icone-chip size-10">
+                <Clock size={20} aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <strong className="font-semibold">Horário</strong>
+                <p className="mt-0.5 text-sm text-pedra">Quanto o peixe rende naquela luz. O pior horário do black bass vale menos da metade do melhor.</p>
+              </div>
+            </li>
+          </ul>
+          <p>As condições são uma média destes pesos, com o clima daquela hora:</p>
+          <ul className="painel divide-y divide-osso/10">
+            {CONDICOES.map((f) => {
               const peso = PESOS[f.id] * 100;
               const Icone = ICONE_FATOR[f.id];
               return (
-                <li key={f.id} className="flex gap-3 p-3.5" style={{ "--acento": COR_FATOR[f.id], "--i": i } as CSSProperties}>
+                <li key={f.id} className="flex gap-3 p-3.5" style={{ "--acento": COR_FATOR[f.id] } as CSSProperties}>
                   <span className="icone-chip size-10">
                     <Icone size={20} aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
                       <strong className="font-semibold">{f.nome}</strong>
-                      <span className="font-mono text-sm">{peso.toFixed(0)} pts</span>
+                      <span className="font-mono text-sm">{peso.toFixed(0)}%</span>
                     </div>
                     <span className="mt-1.5 block h-2 rounded-full bg-terra">
-                      <span className="barra block h-full rounded-full" style={{ width: `${(peso / 35) * 100}%`, backgroundColor: COR_FATOR[f.id] }} />
+                      <span className="barra block h-full rounded-full" style={{ width: `${(peso / 30) * 100}%`, backgroundColor: COR_FATOR[f.id] }} />
                     </span>
                     <p className="mt-1.5 text-sm text-pedra">{f.texto}</p>
                   </div>
@@ -81,6 +108,7 @@ export default function Pagina() {
               );
             })}
           </ul>
+          <p className="text-sm text-pedra">A tabela solunar ficou de fora: um estudo de mais de 5 anos não achou relação com a captura.</p>
         </Bloco>
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8">
@@ -124,8 +152,8 @@ export default function Pagina() {
 
           <Bloco titulo="Por hora" Icone={Clock} cor="#ffd166">
             <p>
-              A nota de cada hora é a do dia ajustada pela janela: o melhor momento vale a nota cheia, o pior perde 21%. A janela depende do peixe.
-              A traíra e o black bass rendem no amanhecer e no entardecer; jundiá e catfish, à noite.
+              Cada hora usa o clima daquela hora. A traíra e o black bass rendem no amanhecer e no entardecer; jundiá e catfish, à noite; tilápia e carpa capim, de dia. Num estudo com bass,
+              a captura ao entardecer foi quase o dobro da média, e a nota respeita essa diferença.
             </p>
           </Bloco>
         </div>
@@ -158,18 +186,31 @@ export default function Pagina() {
               </tbody>
             </table>
           </div>
-          <p className="text-sm text-pedra">Os períodos e os efeitos de chuva e céu limpo são estimativas pelo hábito de cada peixe, e serão os primeiros números a ajustar com os registros.</p>
         </Bloco>
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8">
           <Bloco titulo="Água sem termômetro" Icone={Thermometer} cor="#62d6d3">
-            <p>Ninguém publica a temperatura da água do Canoas. A água acompanha o ar com atraso, então a estimativa usa a média do ar:</p>
+            <p>
+              Ninguém publica a temperatura dos açudes daqui. O site estima hora a hora: a água corre atrás do ar mais o calor do sol, e demora mais quanto mais fundo for o açude.
+            </p>
+            <p>
+              O modelo foi ajustado com a água medida pela Epagri em Caçador, de março a setembro de 2009: 15,9 °C às 9 h e 16,9 °C às 15 h, e o modelo dá 15,8 e 16,5. Nas madrugadas mais frias ele ainda erra para baixo.
+            </p>
             <ul className="painel divide-y divide-osso/10 font-mono text-sm">
-              <li className="p-3">Rio: média de 3 dias</li>
-              <li className="p-3">Açude ou represa: média de 7 dias + 1 °C</li>
-              <li className="p-3">Rio de truta: 0,7 × média de 3 dias + 3 °C</li>
+              <li className="p-3">Açude: 2,5 m, a não ser que você informe outra</li>
+              <li className="p-3">Represa: 8 m de camada que se mistura</li>
+              <li className="p-3">Rio: acompanha o ar de perto e pega pouco sol</li>
             </ul>
-            <p>A partir de 10 medições de termômetro num ponto, o site troca a estimativa por uma regressão daquele ponto. É o jeito mais rápido de deixar o índice certeiro.</p>
+            <p>
+              A partir de 3 medições de termômetro num ponto, o site corrige o desvio daquele ponto. Com 10 medições em épocas diferentes, ajusta a reta inteira. É o jeito mais rápido de deixar o índice certeiro.
+            </p>
+          </Bloco>
+
+          <Bloco titulo="O que ainda é estimativa" Icone={ShieldCheck} cor="#ff9d62">
+            <p>
+              As faixas de temperatura vêm de estudos e da Epagri, mas sobre crescimento e alimentação, não sobre mordida no anzol. Os horários e o efeito da chuva por espécie são estimativas pelo hábito do peixe.
+              Nenhum app grátis ou pago publica teste independente de acerto. A nota só fica provada com as pescarias de vocês, incluindo os dias zerados.
+            </p>
           </Bloco>
 
           <Bloco titulo="Fontes" Icone={BookMarked} cor="#d0a26b">

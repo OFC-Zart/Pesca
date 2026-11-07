@@ -9,6 +9,8 @@ export interface Local {
   calibA?: number | null;
   calibB?: number | null;
   calibN?: number | null;
+  /** Profundidade média em metros; quanto mais funda, mais devagar a água muda. */
+  profundidade?: number | null;
 }
 
 /** Série horária do clima. `tempo` é a hora local em "YYYY-MM-DDTHH:mm". */
@@ -20,6 +22,8 @@ export interface SerieClima {
   chuva: (number | null)[];
   nuvens: (number | null)[];
   codigo: (number | null)[];
+  /** Radiação solar em W/m². */
+  sol: (number | null)[];
 }
 
 export interface DiaClima {
@@ -32,6 +36,22 @@ export interface DiaClima {
   nuvens: number;
   tempestade: boolean;
   horasInseguras: number[];
+}
+
+/** O clima de uma hora, já com a água estimada. */
+export interface HoraClima {
+  data: string;
+  hora: number;
+  tempAr: number;
+  tempAgua: number;
+  /** Saída do modelo antes da calibração do local: é ela que entra na regressão com o termômetro. */
+  aguaModelo: number;
+  deltaAgua48h: number;
+  deltaPressao24h: number;
+  vento: number;
+  chuvaHora: number;
+  chuva48h: number;
+  nuvens: number;
 }
 
 export interface Astro {
@@ -69,6 +89,10 @@ export interface NotaEspecie {
   fatores: Fatores;
   horas: number[] | null;
   motivo: string;
+  /** Quanto o horário favorece na melhor hora, de 0 a 1. */
+  horario: number;
+  /** O clima na melhor hora, de onde saíram os fatores. */
+  base: Pick<HoraClima, "hora" | "tempAgua" | "deltaAgua48h" | "deltaPressao24h" | "vento" | "chuva48h" | "nuvens">;
 }
 
 export interface DiaPrevisao {
@@ -88,5 +112,6 @@ export interface Previsao {
   locais: Local[];
   atualizadoEm: string;
   fonteConfianca: "ensemble" | "tabela";
+  versaoModelo: number;
   dias: DiaPrevisao[];
 }

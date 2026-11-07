@@ -2,7 +2,7 @@ import { ChevronRight, Clock, Trophy } from "lucide-react";
 import type { CSSProperties } from "react";
 import { ESPECIES, LEGENDA_PERIODO, type EspecieId } from "@/config/indice";
 import { COR_NOTA } from "@/lib/formato";
-import { escala, fmt, melhorHora, trapezio } from "@/lib/indice/calculo";
+import { escala, fmt, melhorHora } from "@/lib/indice/calculo";
 import type { DiaPrevisao } from "@/lib/indice/tipos";
 import { COR_ESPECIE } from "@/lib/visual";
 import { PeixeEspecie } from "./Peixes";
@@ -10,7 +10,7 @@ import { SeloOrigem } from "./Selos";
 import { TituloSecao } from "./TituloSecao";
 
 export function ordenarEspecies(dia: DiaPrevisao): EspecieId[] {
-  const chave = (id: EspecieId) => dia.especies[id].nota ?? Math.round(trapezio(dia.brutos.tempAgua, ESPECIES[id]) * 100);
+  const chave = (id: EspecieId) => dia.especies[id].nota ?? Math.round(dia.especies[id].fatores.agua * 100);
   return (Object.keys(dia.especies) as EspecieId[]).sort((a, b) => chave(b) - chave(a));
 }
 
@@ -31,7 +31,7 @@ export function Ranking({ dia, horaAgora, onEscolher }: { dia: DiaPrevisao; hora
           // Se o pico do dia já passou, dizer "melhor às 22h" para um peixe diurno enganaria.
           const pico = horas ? melhorHora(horas) : null;
           const picoPassou = horas !== null && h !== null && pico !== null && horas[pico] > horas[h];
-          const valor = n.nota ?? Math.round(trapezio(dia.brutos.tempAgua, e) * 100);
+          const valor = n.nota ?? Math.round(n.fatores.agua * 100);
           const corBarra = nivel ? COR_NOTA[nivel.nome] : "#62d6d3";
           return (
             <li key={id} className="aparece" style={{ "--i": i } as CSSProperties}>

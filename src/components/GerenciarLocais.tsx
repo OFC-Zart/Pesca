@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { Droplets, LocateFixed, MapPinPlus, Waves } from "lucide-react";
-import { MEDICOES_PARA_CALIBRAR, NOME_TIPO_AGUA, type TipoAgua } from "@/config/indice";
+import { MEDICOES_PARA_CALIBRAR, MEDICOES_PARA_RETA, NOME_TIPO_AGUA, type TipoAgua } from "@/config/indice";
 import type { Local } from "@/lib/indice/tipos";
 import { TituloSecao } from "./TituloSecao";
 
@@ -13,6 +13,7 @@ export function GerenciarLocais() {
   const [tipo, setTipo] = useState<TipoAgua>("acude");
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
+  const [profundidade, setProfundidade] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
 
   const carregar = () =>
@@ -37,7 +38,7 @@ export function GerenciarLocais() {
       const r = await fetch("/api/locais", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, tipo, lat: num(lat), lon: num(lon) }),
+        body: JSON.stringify({ nome, tipo, lat: num(lat), lon: num(lon), profundidade: profundidade.trim() ? num(profundidade) : undefined }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.erro);
@@ -45,6 +46,7 @@ export function GerenciarLocais() {
       setNome("");
       setLat("");
       setLon("");
+      setProfundidade("");
       void carregar();
     } catch (err) {
       setMsg({ ok: false, texto: err instanceof Error ? err.message : "Não foi possível cadastrar." });
@@ -67,7 +69,7 @@ export function GerenciarLocais() {
         <TituloSecao id="titulo-lista" titulo="Pontos de pesca" Icone={Waves} cor="#62d6d3" />
         <ul className="painel mt-2.5 divide-y divide-osso/10">
           {(locais ?? []).map((l) => {
-            const medidas = Math.min(l.calibN ?? 0, MEDICOES_PARA_CALIBRAR);
+            const medidas = Math.min(l.calibN ?? 0, MEDICOES_PARA_RETA);
             return (
               <li key={l.id} className="flex gap-3 p-3.5" style={{ "--acento": "#62d6d3" } as React.CSSProperties}>
                 <span className="icone-chip size-10">
@@ -76,13 +78,14 @@ export function GerenciarLocais() {
                 <div className="min-w-0 flex-1">
                   <span className="block font-semibold">{l.nome}</span>
                   <span className="block font-mono text-xs text-pedra">
-                    {NOME_TIPO_AGUA[l.tipo]} · {l.lat.toFixed(3)}, {l.lon.toFixed(3)}
+                    {NOME_TIPO_AGUA[l.tipo]}
+                    {l.profundidade ? ` · ${l.profundidade} m` : ""} · {l.lat.toFixed(3)}, {l.lon.toFixed(3)}
                   </span>
                   <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-terra">
-                    <span className="barra block h-full rounded-full bg-rio-claro" style={{ width: `${(medidas / MEDICOES_PARA_CALIBRAR) * 100}%` }} />
+                    <span className="barra block h-full rounded-full bg-rio-claro" style={{ width: `${(medidas / MEDICOES_PARA_RETA) * 100}%` }} />
                   </span>
                   <span className="mt-1 block text-xs text-pedra">
-                    {l.calibA != null ? `Água calibrada com ${l.calibN} medições de termômetro` : `${l.calibN ?? 0} de ${MEDICOES_PARA_CALIBRAR} medições para calibrar a água`}
+                    {l.calibA != null ? `Água calibrada com ${l.calibN} medições de termômetro. Quanto mais, melhor.` : `${l.calibN ?? 0} de ${MEDICOES_PARA_CALIBRAR} medições para calibrar a água deste ponto`}
                   </span>
                 </div>
               </li>
@@ -121,6 +124,13 @@ export function GerenciarLocais() {
                 <input required inputMode="text" value={lon} onChange={(e) => setLon(e.target.value)} placeholder="-50,88" className="campo" />
               </label>
             </div>
+            <label className="grid gap-1 text-sm font-semibold">
+              <span>
+                Profundidade média em metros <span className="font-normal text-pedra">(opcional)</span>
+              </span>
+              <input inputMode="decimal" value={profundidade} onChange={(e) => setProfundidade(e.target.value)} placeholder="Ex.: 2,5" className="campo" />
+              <span className="font-normal text-pedra">Açude raso muda de temperatura rápido; fundo, devagar. Ajuda a acertar a água.</span>
+            </label>
             <button type="button" onClick={usarGps} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-osso/25 text-sm font-semibold hover:bg-osso/5">
               <LocateFixed size={18} className="text-rio-claro" aria-hidden /> Usar minha localização
             </button>

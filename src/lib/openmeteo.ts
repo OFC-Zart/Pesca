@@ -1,7 +1,7 @@
 import type { SerieClima } from "@/lib/indice/tipos";
 
 const UMA_HORA = 3600;
-const VARS = "temperature_2m,pressure_msl,wind_speed_10m,precipitation,cloud_cover";
+const VARS = "temperature_2m,pressure_msl,wind_speed_10m,precipitation,cloud_cover,shortwave_radiation";
 
 export interface ClimaBase {
   serie: SerieClima;
@@ -13,7 +13,7 @@ function comum(lat: number, lon: number) {
 }
 
 export async function buscarClima(lat: number, lon: number): Promise<ClimaBase> {
-  const url = `https://api.open-meteo.com/v1/forecast?${comum(lat, lon)}&hourly=${VARS},weather_code&past_days=7&forecast_days=16`;
+  const url = `https://api.open-meteo.com/v1/forecast?${comum(lat, lon)}&hourly=${VARS},weather_code&past_days=92&forecast_days=16`;
   const r = await fetch(url, { next: { revalidate: UMA_HORA } });
   if (!r.ok) throw new Error(`Open-Meteo respondeu ${r.status}`);
   const j = await r.json();
@@ -28,17 +28,17 @@ export async function buscarClima(lat: number, lon: number): Promise<ClimaBase> 
       chuva: h.precipitation,
       nuvens: h.cloud_cover,
       codigo: h.weather_code,
+      sol: h.shortwave_radiation,
     },
   };
 }
 
 /**
  * Busca os cenários do ensemble GFS (31 versões) e devolve uma série por cenário.
- * O ensemble não traz os dias mais antigos do past_days, então esses buracos são preenchidos
- * com a série principal: o passado é o mesmo em todos os cenários.
+ * Os meses anteriores, que aquecem o modelo da água, vêm da série principal: o passado é o mesmo em todos os cenários.
  */
 export async function buscarEnsemble(lat: number, lon: number, base: SerieClima): Promise<SerieClima[]> {
-  const url = `https://ensemble-api.open-meteo.com/v1/ensemble?${comum(lat, lon)}&hourly=${VARS}&models=gfs025&past_days=7&forecast_days=8`;
+  const url = `https://ensemble-api.open-meteo.com/v1/ensemble?${comum(lat, lon)}&hourly=${VARS}&models=gfs025&past_days=1&forecast_days=8`;
   const r = await fetch(url, { next: { revalidate: UMA_HORA } });
   if (!r.ok) throw new Error(`Ensemble respondeu ${r.status}`);
   const h = (await r.json()).hourly as Record<string, (number | null)[]> & { time: string[] };
@@ -65,5 +65,6 @@ export async function buscarEnsemble(lat: number, lon: number, base: SerieClima)
     chuva: campo("precipitation", s, base.chuva),
     nuvens: campo("cloud_cover", s, base.nuvens),
     codigo: tempo.map((_, i) => base.codigo[i]),
+    sol: campo("shortwave_radiation", s, base.sol),
   }));
 }

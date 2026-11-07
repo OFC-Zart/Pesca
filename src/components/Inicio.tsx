@@ -183,7 +183,7 @@ export function Inicio() {
 
             <FileiraDias dias={resumo} selecionado={dia.data} hoje={agora.data} onSelecionar={setData} />
 
-            {filtro !== "todas" && <Fatores dia={dia} especie={filtro} fatores={dia.especies[filtro].fatores} local={previsao!.local} />}
+            {filtro !== "todas" && <Fatores dia={dia} especie={filtro} nota={dia.especies[filtro]} local={previsao!.local} />}
 
             {previsao && (
               <p className="flex items-start gap-1.5 text-xs text-pedra" style={{ "--acento": "#62d6d3" } as CSSProperties}>

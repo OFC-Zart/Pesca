@@ -6,21 +6,14 @@ import {
   ESPECIE_IDS,
   FASES,
   SEGURANCA,
+  VERSAO_MODELO,
   type EspecieId,
 } from "@/config/indice";
 import { buscarClima, buscarEnsemble } from "@/lib/openmeteo";
+import { prepararHoras } from "./agua";
 import { calcularAstro } from "./astro";
-import {
-  agruparDias,
-  calcularBrutos,
-  calcularFatores,
-  confiancaTabela,
-  fraseMotivo,
-  notasPorHora,
-  percentil,
-  somarNota,
-} from "./calculo";
-import type { Astro, DiaClima, DiaPrevisao, Fase, Local, NivelConfianca, NotaEspecie, Previsao, SerieClima } from "./tipos";
+import { agruparDias, avaliarDia, brutosDoDia, confiancaTabela, fraseMotivo, percentil } from "./calculo";
+import type { Astro, DiaClima, DiaPrevisao, Fase, HoraClima, Local, NivelConfianca, NotaEspecie, Previsao, SerieClima } from "./tipos";
 
 export function hojeEmSaoPaulo(agora = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(agora);
@@ -50,22 +43,27 @@ function textoBloqueio(d: DiaClima): string | null {
   return null;
 }
 
+function horasPorDia(horas: HoraClima[]): Map<string, HoraClima[]> {
+  const mapa = new Map<string, HoraClima[]>();
+  for (const h of horas) {
+    if (!mapa.has(h.data)) mapa.set(h.data, []);
+    mapa.get(h.data)!.push(h);
+  }
+  return mapa;
+}
+
 /** Nota de cada espécie em cada cenário do ensemble, indexada por data. */
 function notasDosCenarios(cenarios: SerieClima[], local: Local, astroPorData: Map<string, Astro>) {
   const porData = new Map<string, Record<EspecieId, number[]>>();
   for (const serie of cenarios) {
-    const dias = agruparDias(serie);
-    dias.forEach((d, i) => {
-      const astro = astroPorData.get(d.data);
-      if (!astro) return;
-      const brutos = calcularBrutos(dias, i, local);
-      if (!porData.has(d.data)) {
-        porData.set(d.data, Object.fromEntries(ESPECIE_IDS.map((id) => [id, [] as number[]])) as unknown as Record<EspecieId, number[]>);
+    for (const [data, horas] of horasPorDia(prepararHoras(serie, local))) {
+      const astro = astroPorData.get(data);
+      if (!astro) continue;
+      if (!porData.has(data)) {
+        porData.set(data, Object.fromEntries(ESPECIE_IDS.map((id) => [id, [] as number[]])) as unknown as Record<EspecieId, number[]>);
       }
-      for (const id of ESPECIE_IDS) {
-        porData.get(d.data)![id].push(somarNota(calcularFatores(brutos, astro.idadeLua, ESPECIES[id])));
-      }
-    });
+      for (const id of ESPECIE_IDS) porData.get(data)![id].push(avaliarDia(horas, ESPECIES[id], astro).nota);
+    }
   }
   return porData;
 }
@@ -85,6 +83,11 @@ export function montarPrevisao(args: {
   const inicio = dias.findIndex((d) => d.data === hoje);
   if (inicio === -1) throw new Error(`Sem dados de clima para ${hoje}`);
 
+  const porDia = horasPorDia(prepararHoras(serie, local));
+  const aguaPorDia = new Map(
+    [...porDia].map(([data, horas]) => [data, horas.reduce((s, h) => s + h.tempAgua, 0) / horas.length]),
+  );
+
   const astroPorData = new Map<string, Astro>();
   for (let i = inicio; i < dias.length; i++) {
     astroPorData.set(dias[i].data, calcularAstro(dias[i].data, local.lat, local.lon, offsetSeg));
@@ -96,23 +99,24 @@ export function montarPrevisao(args: {
     const d = dias[i];
     const k = i - inicio;
     const astro = astroPorData.get(d.data)!;
-    const brutos = calcularBrutos(dias, i, local);
+    const brutos = brutosDoDia(dias, i, aguaPorDia);
     const fase = faseDoDia(k);
     const pct = confiancaTabela(k, CONFIANCA_TABELA);
     const notasCen = cen?.get(d.data);
+    const horasDoDia = porDia.get(d.data) ?? [];
     let maiorLargura = 0;
 
     const especies = {} as Record<EspecieId, NotaEspecie>;
     for (const id of ESPECIE_IDS) {
-      const e = ESPECIES[id];
-      const fatores = calcularFatores(brutos, astro.idadeLua, e);
+      const av = avaliarDia(horasDoDia, ESPECIES[id], astro);
+      const { hora, tempAgua, deltaAgua48h, deltaPressao24h, vento, chuva48h, nuvens } = av.melhor;
+      const base = { hora, tempAgua, deltaAgua48h, deltaPressao24h, vento, chuva48h, nuvens };
       if (fase === "tendencia") {
-        especies[id] = { nota: null, min: null, max: null, fatores, horas: null, motivo: "" };
+        especies[id] = { nota: null, min: null, max: null, fatores: av.fatores, horario: av.horario, base, horas: null, motivo: "" };
         continue;
       }
-      const base = somarNota(fatores);
       const lista = notasCen?.[id]?.slice().sort((a, b) => a - b);
-      let nota = base;
+      let nota = av.nota;
       let min: number;
       let max: number;
       if (lista?.length) {
@@ -123,17 +127,19 @@ export function montarPrevisao(args: {
         max = Math.max(p90, nota);
       } else {
         const margem = Math.round((100 - pct) * CONFIANCA_RESERVA.pontosPorPct);
-        min = Math.max(0, base - margem);
-        max = Math.min(100, base + margem);
+        min = Math.max(0, av.nota - margem);
+        max = Math.min(100, av.nota + margem);
       }
       maiorLargura = Math.max(maiorLargura, max - min);
       especies[id] = {
         nota,
         min,
         max,
-        fatores,
-        horas: fase === "completa" ? notasPorHora(nota, e, astro) : null,
-        motivo: fraseMotivo(id, nota, fatores, brutos),
+        fatores: av.fatores,
+        horario: av.horario,
+        base,
+        horas: fase === "completa" ? av.horas : null,
+        motivo: fraseMotivo(id, nota, av.fatores, av.melhor),
       };
     }
 
@@ -154,6 +160,7 @@ export function montarPrevisao(args: {
     locais,
     atualizadoEm: agora.toISOString(),
     fonteConfianca: cen ? "ensemble" : "tabela",
+    versaoModelo: VERSAO_MODELO,
     dias: saida,
   };
 }

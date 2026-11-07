@@ -39,7 +39,7 @@ describe("banco", () => {
 
   it("grava e lista a pescaria com capturas e nota", async () => {
     const s = entrada();
-    expect(await gravarSaida(s, { nota: 63, fatores: { agua: 1 }, mediaAr: 18 })).toEqual({ duplicada: false });
+    expect(await gravarSaida(s, { nota: 63, fatores: { agua: 1 }, aguaModelo: 18 })).toEqual({ duplicada: false });
     const lista = await listarSaidas();
     const achada = lista!.find((x) => x.clienteId === s.clienteId)!;
     expect(achada.nota).toBe(63);
@@ -48,8 +48,8 @@ describe("banco", () => {
 
   it("não duplica quando o aparelho reenvia", async () => {
     const s = entrada();
-    await gravarSaida(s, { nota: null, fatores: null, mediaAr: null });
-    expect(await gravarSaida(s, { nota: null, fatores: null, mediaAr: null })).toEqual({ duplicada: true });
+    await gravarSaida(s, { nota: null, fatores: null, aguaModelo: null });
+    expect(await gravarSaida(s, { nota: null, fatores: null, aguaModelo: null })).toEqual({ duplicada: true });
     const caps = await db.select().from(schema.capturas);
     expect(caps.filter((c) => c.quantidade === 2).length).toBeGreaterThan(0);
     const lista = await listarSaidas();
@@ -58,34 +58,40 @@ describe("banco", () => {
 
   it("saída zerada é gravada sem capturas", async () => {
     const s = entrada({ capturas: [] });
-    await gravarSaida(s, { nota: null, fatores: null, mediaAr: null });
+    await gravarSaida(s, { nota: null, fatores: null, aguaModelo: null });
     const lista = await listarSaidas();
     expect(lista!.find((x) => x.clienteId === s.clienteId)!.capturas).toEqual([]);
   });
 
-  it("calibra o local só a partir de 10 medições", async () => {
+  it("calibra o local a partir de 3 medições, e com a reta quando há 10 em épocas diferentes", async () => {
     const localId = "acude-cerro-negro";
-    for (let i = 0; i < 9; i++) {
-      await gravarSaida(entrada({ localId, tempAgua: 2 + 0.9 * (10 + i) }), { nota: null, fatores: null, mediaAr: 10 + i });
-    }
-    let [l] = await db.select().from(schema.locais).where(eq(schema.locais.id, localId));
-    expect(l.calibN).toBe(9);
-    expect(l.calibA).toBeNull();
+    const registrar = (x: number, y: number) => gravarSaida(entrada({ localId, tempAgua: y }), { nota: null, fatores: null, aguaModelo: x });
+    const ver = async () => (await db.select().from(schema.locais).where(eq(schema.locais.id, localId)))[0];
 
-    await gravarSaida(entrada({ localId, tempAgua: 2 + 0.9 * 25 }), { nota: null, fatores: null, mediaAr: 25 });
-    [l] = await db.select().from(schema.locais).where(eq(schema.locais.id, localId));
+    await registrar(10, 11);
+    await registrar(11, 12);
+    expect((await ver()).calibA).toBeNull();
+
+    await registrar(12, 13);
+    let l = await ver();
+    expect(l.calibN).toBe(3);
+    expect(l.calibA!).toBeCloseTo(1, 3);
+    expect(l.calibB!).toBe(1);
+
+    for (let i = 0; i < 7; i++) await registrar(13 + i * 2, 2 + 0.9 * (13 + i * 2));
+    l = await ver();
     expect(l.calibN).toBe(10);
-    expect(l.calibA!).toBeCloseTo(2, 3);
-    expect(l.calibB!).toBeCloseTo(0.9, 3);
+    expect(l.calibB!).not.toBe(1);
+    expect(l.calibB!).toBeGreaterThan(0.5);
+    expect(l.calibB!).toBeLessThan(1.5);
 
     await recalibrarLocal(localId);
-    const [denovo] = await db.select().from(schema.locais).where(eq(schema.locais.id, localId));
-    expect(denovo.calibB!).toBeCloseTo(0.9, 3);
+    expect((await ver()).calibB!).toBeCloseTo(l.calibB!, 5);
   });
 
-  it("ignora medição sem média do ar na regressão", async () => {
+  it("ignora medição sem a saída do modelo", async () => {
     const localId = "represa-cerro-negro";
-    await gravarSaida(entrada({ localId, tempAgua: 20 }), { nota: null, fatores: null, mediaAr: null });
+    await gravarSaida(entrada({ localId, tempAgua: 20 }), { nota: null, fatores: null, aguaModelo: null });
     const [l] = await db.select().from(schema.locais).where(eq(schema.locais.id, localId));
     expect(l.calibN).toBe(0);
   });
@@ -103,6 +109,6 @@ describe("banco", () => {
   });
 
   it("rejeita local inexistente", async () => {
-    await expect(gravarSaida(entrada({ localId: "nao-existe" }), { nota: null, fatores: null, mediaAr: null })).rejects.toThrow();
+    await expect(gravarSaida(entrada({ localId: "nao-existe" }), { nota: null, fatores: null, aguaModelo: null })).rejects.toThrow();
   });
 });

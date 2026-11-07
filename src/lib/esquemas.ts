@@ -24,6 +24,7 @@ export const esquemaLocal = z.object({
   tipo: z.enum(["rio", "acude", "represa", "rio_truta"]),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
+  profundidade: z.number().min(0.3).max(100).optional(),
 });
 
 const campoNome = z.string().trim().min(2, "Nome muito curto.").max(30, "Nome muito longo.");

@@ -1,24 +1,27 @@
 import {
-  AGUA,
-  AGUA_ESTAVEL_DELTA,
   ESCALA,
   ESPECIES,
-  JANELA,
+  EXPOENTE_APETITE,
+  EXPOENTE_CONDICOES,
+  HORAS_DA_NOTA,
   PESOS,
   SEGURANCA,
+  type CondicaoId,
   type Especie,
   type EspecieId,
-  type FatorId,
-  type TipoAgua,
 } from "@/config/indice";
-import type { Astro, Brutos, DiaClima, Fatores, Local, SerieClima } from "./tipos";
+import type { Astro, Brutos, DiaClima, Fatores, HoraClima, SerieClima } from "./tipos";
 
 const media = (v: number[]) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0);
+const limitar = (v: number) => Math.max(0, Math.min(1, v));
 
-/** Curva trapezoidal: 1 na faixa ótima, caindo em linha reta até 0 nos limites. */
-export function trapezio(t: number, e: Pick<Especie, "min" | "otMin" | "otMax" | "max">): number {
+/**
+ * Apetite pela temperatura da água, de 0 a 1. É o limite de tudo: abaixo de `min` o peixe praticamente não come,
+ * e o resto do clima não salva. Abaixo do ótimo a curva é côncava, porque o metabolismo acelera com o calor.
+ */
+export function apetite(t: number, e: Pick<Especie, "min" | "otMin" | "otMax" | "max">): number {
   if (t <= e.min || t >= e.max) return 0;
-  if (t < e.otMin) return (t - e.min) / (e.otMin - e.min);
+  if (t < e.otMin) return ((t - e.min) / (e.otMin - e.min)) ** EXPOENTE_APETITE;
   if (t > e.otMax) return (e.max - t) / (e.max - e.otMax);
   return 1;
 }
@@ -27,46 +30,121 @@ export function notaLua(idadeDias: number): number {
   return 0.5 + 0.5 * Math.abs(Math.cos((2 * Math.PI * idadeDias) / 29.53));
 }
 
+/** A pressão não age direto no peixe; subindo rápido, ela denuncia a frente fria que passou. */
 export function notaPressao(delta24h: number): number {
-  if (delta24h > 4) return 0.2;
-  if (delta24h < -6) return 0.6;
+  if (delta24h > 4) return 0.3;
+  if (delta24h < -6) return 0.65;
   if (delta24h < -2) return 1;
-  return 0.8;
+  return 0.85;
 }
 
 export function notaVento(v: number): number {
-  if (v < 1) return 0.6;
+  if (v < 1) return 0.7;
   if (v <= 5) return 1;
-  if (v <= 8) return 0.5;
-  return 0.1;
+  if (v <= 8) return 0.55;
+  return 0.15;
 }
 
-export function notaChuva(mm48h: number, e: Pick<Especie, "chuvaForte">): number {
-  if (mm48h <= 10) return 1;
-  if (mm48h <= 30) return 0.6;
-  return e.chuvaForte;
+/** Chuva forte embarra a água, e isso pesa conforme o peixe caça com a visão ou com o olfato. */
+export function notaChuva(mm48h: number, mmAgora: number, e: Pick<Especie, "chuvaForte">): number {
+  const acumulado = mm48h <= 10 ? 1 : mm48h <= 30 ? (1 + e.chuvaForte) / 2 : e.chuvaForte;
+  return mmAgora >= 4 ? acumulado * 0.7 : acumulado;
 }
 
-export function notaNuvens(pct: number, e: Pick<Especie, "ceuLimpo">): number {
+/** Céu só importa de dia: tira a luz forte da água, e cada peixe reage de um jeito ao céu limpo. */
+export function notaNuvens(pct: number, deDia: boolean, e: Pick<Especie, "ceuLimpo">): number {
+  if (!deDia) return 1;
   if (pct >= 40 && pct <= 80) return 1;
-  return pct < 40 ? e.ceuLimpo : 0.6;
+  return pct < 40 ? e.ceuLimpo : 0.85;
 }
 
-/** 1 esquentando rumo ao ótimo, 0,5 estável, 0,2 se esfriou mais de 3 °C em 48 h. */
-export function notaTendencia(tempAgua: number, delta48h: number, e: Pick<Especie, "otMax">): number {
-  if (delta48h < -3) return 0.2;
-  if (delta48h >= AGUA_ESTAVEL_DELTA && tempAgua <= e.otMax) return 1;
-  return 0.5;
+const QUEDA: [number, number][] = [[-4, 0.1], [-2, 0.45], [-1, 0.7], [-0.3, 0.9], [0.3, 0.92], [1, 1]];
+
+/** Frente fria é o que mais derruba o peixe: a nota cai junto com a água. Esfriar só ajuda quando a água está quente demais. */
+export function notaTendencia(t: number, delta48h: number, e: Pick<Especie, "otMax">): number {
+  if (t > e.otMax) return delta48h < 0 ? 1 : 0.7;
+  if (delta48h <= QUEDA[0][0]) return QUEDA[0][1];
+  for (let i = 1; i < QUEDA.length; i++) {
+    const [x0, y0] = QUEDA[i - 1];
+    const [x1, y1] = QUEDA[i];
+    if (delta48h <= x1) return y0 + ((y1 - y0) * (delta48h - x0)) / (x1 - x0);
+  }
+  return 1;
 }
 
 export function escala(nota: number) {
   return ESCALA.find((n) => nota <= n.ate) ?? ESCALA[ESCALA.length - 1];
 }
 
-export function somarNota(f: Fatores): number {
+const ehDia = (c: number, a: Pick<Astro, "nascerSol" | "porSol">) => c >= (a.nascerSol ?? 6) && c <= (a.porSol ?? 18);
+
+/**
+ * Quanto a hora favorece o peixe pela luz. O amanhecer e o entardecer valem cheio até 1 h do sol e somem aos poucos até 2,5 h.
+ * A noite perde um pouco de força até o fim: o começo da noite costuma render mais que a madrugada fria (ESTIMATIVA).
+ */
+export function janelaDeLuz(hora: number, e: Pick<Especie, "luz">, a: Pick<Astro, "nascerSol" | "porSol">): number {
+  const c = hora + 0.5;
+  const nascer = a.nascerSol ?? 6;
+  const por = a.porSol ?? 18;
+  let base: number = e.luz.dia;
+  if (!ehDia(c, a)) {
+    const desdeOPor = (c >= por ? c : c + 24) - por;
+    base = e.luz.noite * (1 - 0.15 * limitar(desdeOPor / (24 - por + nascer)));
+  }
+  const perto = Math.min(Math.abs(c - nascer), Math.abs(c - por));
+  const peso = limitar((2.5 - perto) / 1.5);
+  return base + (e.luz.crepusculo - base) * peso;
+}
+
+export function fatoresDaHora(h: HoraClima, e: Especie, a: Astro): Fatores {
+  return {
+    agua: apetite(h.tempAgua, e),
+    tendencia: notaTendencia(h.tempAgua, h.deltaAgua48h, e),
+    pressao: notaPressao(h.deltaPressao24h),
+    vento: notaVento(h.vento),
+    chuva: notaChuva(h.chuva48h, h.chuvaHora, e),
+    nuvens: notaNuvens(h.nuvens, ehDia(h.hora + 0.5, a), e),
+    lua: notaLua(a.idadeLua),
+  };
+}
+
+/** Média ponderada das condições do momento, de 0 a 1. */
+export function condicoes(f: Fatores): number {
   let s = 0;
-  for (const k of Object.keys(PESOS) as FatorId[]) s += PESOS[k] * f[k];
-  return Math.round(100 * s);
+  for (const k of Object.keys(PESOS) as CondicaoId[]) s += PESOS[k] * f[k];
+  return s;
+}
+
+/** Nota = 100 × apetite × horário × condições². Como é produto, qualquer limite forte derruba o resultado. */
+export function notaDaHora(f: Fatores, horario: number): number {
+  return Math.round(100 * f.agua * horario * condicoes(f) ** EXPOENTE_CONDICOES);
+}
+
+export interface AvaliacaoDia {
+  nota: number;
+  horas: number[];
+  melhor: HoraClima;
+  fatores: Fatores;
+  horario: number;
+}
+
+/** Nota de cada hora e nota do dia, que é a média das melhores horas: um dia vale pela janela boa que oferece. */
+export function avaliarDia(horas: HoraClima[], e: Especie, a: Astro): AvaliacaoDia {
+  const notas = new Array<number>(24).fill(0);
+  let melhor = horas[0];
+  let maior = -1;
+  const presentes: number[] = [];
+  for (const h of horas) {
+    const n = notaDaHora(fatoresDaHora(h, e, a), janelaDeLuz(h.hora, e, a));
+    notas[h.hora] = n;
+    presentes.push(n);
+    if (n > maior) {
+      maior = n;
+      melhor = h;
+    }
+  }
+  const topo = presentes.sort((x, y) => y - x).slice(0, HORAS_DA_NOTA);
+  return { nota: Math.round(media(topo)), horas: notas, melhor, fatores: fatoresDaHora(melhor, e, a), horario: janelaDeLuz(melhor.hora, e, a) };
 }
 
 /** Agrupa a série horária por dia local. Horas sem dado são ignoradas; dia sem dado de temperatura é descartado. */
@@ -110,85 +188,21 @@ export function agruparDias(s: SerieClima): DiaClima[] {
   return out;
 }
 
-export function mediaAr(dias: DiaClima[], i: number, n: number): number {
-  return media(dias.slice(Math.max(0, i - n + 1), i + 1).map((d) => d.temp));
-}
-
-/** Temperatura da água: regressão do local quando existe, senão a estimativa pelo tipo de água. */
-export function estimarAgua(dias: DiaClima[], i: number, local: Pick<Local, "tipo" | "calibA" | "calibB">): number {
-  const cfg = AGUA[local.tipo];
-  const ar = mediaAr(dias, i, cfg.dias);
-  if (local.calibA != null && local.calibB != null) return local.calibA + local.calibB * ar;
-  return cfg.a + cfg.b * ar;
-}
-
-export function diasDaMedia(tipo: TipoAgua): number {
-  return AGUA[tipo].dias;
-}
-
-export function regressao(pontos: { x: number; y: number }[]): { a: number; b: number } | null {
-  const n = pontos.length;
-  if (n < 2) return null;
-  const mx = media(pontos.map((p) => p.x));
-  const my = media(pontos.map((p) => p.y));
-  const sxx = pontos.reduce((s, p) => s + (p.x - mx) ** 2, 0);
-  if (sxx === 0) return null;
-  const sxy = pontos.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0);
-  const b = sxy / sxx;
-  return { a: my - b * mx, b };
-}
-
-export function calcularBrutos(dias: DiaClima[], i: number, local: Local): Brutos {
+/** Os números do dia para mostrar na tela. */
+export function brutosDoDia(dias: DiaClima[], i: number, aguaPorDia: Map<string, number>): Brutos {
   const d = dias[i];
   const ontem = dias[i - 1] ?? d;
-  const tempAgua = estimarAgua(dias, i, local);
-  const agua48h = i >= 2 ? estimarAgua(dias, i - 2, local) : tempAgua;
+  const agua = aguaPorDia.get(d.data) ?? d.temp;
+  const anteontem = dias[i - 2] ? (aguaPorDia.get(dias[i - 2].data) ?? agua) : agua;
   return {
-    tempAgua,
-    deltaAgua48h: tempAgua - agua48h,
+    tempAgua: agua,
+    deltaAgua48h: agua - anteontem,
     deltaPressao24h: d.pressao - ontem.pressao,
     vento: d.vento,
     chuva48h: d.chuva + ontem.chuva,
     nuvens: d.nuvens,
     tempAr: d.temp,
   };
-}
-
-export function calcularFatores(b: Brutos, idadeLua: number, e: Especie): Fatores {
-  return {
-    agua: trapezio(b.tempAgua, e),
-    tendencia: notaTendencia(b.tempAgua, b.deltaAgua48h, e),
-    pressao: notaPressao(b.deltaPressao24h),
-    vento: notaVento(b.vento),
-    chuva: notaChuva(b.chuva48h, e),
-    lua: notaLua(idadeLua),
-    nuvens: notaNuvens(b.nuvens, e),
-  };
-}
-
-const dentro = (hora: number, alvo: number | null, raio: number) => {
-  if (alvo === null) return false;
-  const d = Math.abs(hora - alvo);
-  return Math.min(d, 24 - d) <= raio;
-};
-
-/**
- * Valor da janela para o centro de cada hora.
- * Diurno e noturno seguem as faixas fixas do perfil e 0,3 fora delas.
- * Crepuscular e misto usam sol ±1 h e, no resto do dia, os períodos solunares.
- */
-export function janelaDaHora(h: number, periodo: Especie["periodo"], a: Astro): number {
-  const c = h + 0.5;
-  if (periodo === "diurno") return h >= JANELA.diurnoDe && h < JANELA.diurnoAte ? JANELA.sol : JANELA.resto;
-  if (periodo === "noturno") return h >= JANELA.noturnoDe || h < JANELA.noturnoAte ? JANELA.noturno : JANELA.resto;
-  if (dentro(c, a.nascerSol, 1) || dentro(c, a.porSol, 1)) return JANELA.sol;
-  if (dentro(c, a.luaAlta, 1) || dentro(c, a.luaBaixa, 1)) return JANELA.solunarMaior;
-  if (dentro(c, a.nascerLua, 0.5) || dentro(c, a.porLua, 0.5)) return JANELA.solunarMenor;
-  return JANELA.resto;
-}
-
-export function notasPorHora(notaDia: number, e: Especie, a: Astro): number[] {
-  return Array.from({ length: 24 }, (_, h) => Math.round(notaDia * (0.7 + 0.3 * janelaDaHora(h, e.periodo, a))));
 }
 
 export function melhorHora(horas: number[], aPartirDe = 0): number {
@@ -214,44 +228,40 @@ export function confiancaTabela(diasAFrente: number, tabela: readonly (readonly 
   return tabela[tabela.length - 1][1];
 }
 
-const NOME_FATOR: Record<FatorId, string> = {
-  agua: "água",
-  tendencia: "tendência da água",
-  pressao: "pressão",
-  vento: "vento",
-  chuva: "chuva",
-  lua: "lua",
-  nuvens: "nuvens",
-};
-
 export const fmt = (n: number, casas = 1) => n.toLocaleString("pt-BR", { maximumFractionDigits: casas, minimumFractionDigits: 0 });
 
-/** Frase curta com o principal motivo: o que mais tirou pontos, ou o que mais ajudou num dia bom. */
-export function fraseMotivo(id: EspecieId, nota: number, f: Fatores, b: Brutos): string {
-  const e = ESPECIES[id];
-  const perda = (Object.keys(PESOS) as FatorId[])
-    .map((k) => ({ k, v: PESOS[k] * (1 - f[k]) }))
-    .sort((x, y) => y.v - x.v)[0];
+type Base = Pick<HoraClima, "tempAgua" | "deltaAgua48h" | "deltaPressao24h" | "vento" | "chuva48h" | "nuvens">;
 
-  if (nota >= 71 || perda.v < 0.02) {
-    if (f.agua >= 1) return `Água a ${fmt(b.tempAgua)} °C, bem na faixa boa da ${e.nome.toLowerCase()}.`;
-    return `A ${NOME_FATOR[perda.k]} ainda pesa um pouco, mas o resto do dia ajuda.`;
+/** Frase curta com o principal motivo: a água, quando ela limita; senão, a condição que mais tirou. */
+export function fraseMotivo(id: EspecieId, nota: number, f: Fatores, b: Base): string {
+  const e: Especie = ESPECIES[id];
+  const peixe = `${e.artigo} ${e.nome.toLowerCase()}`;
+  const t = fmt(b.tempAgua);
+  if (f.agua === 0) {
+    if (b.tempAgua <= e.min) return `Água a ${t} °C: abaixo de ${e.min} °C, ${peixe} praticamente não come.`;
+    return `Água a ${t} °C: quente demais, acima do limite de ${e.max} °C.`;
+  }
+  if (f.agua < 0.6) {
+    if (b.tempAgua < e.otMin) return `Água fria: ${t} °C estimados, e ${peixe} só come bem a partir de ${e.otMin} °C.`;
+    return `Água quente: ${t} °C estimados, acima dos ${e.otMin}–${e.otMax} °C que ${peixe} prefere.`;
+  }
+  const perda = (Object.keys(PESOS) as CondicaoId[]).map((k) => ({ k, v: PESOS[k] * (1 - f[k]) })).sort((x, y) => y.v - x.v)[0];
+  if (nota >= 71 || perda.v < 0.03) {
+    if (f.agua >= 1) return `Água a ${t} °C, bem na faixa boa para ${peixe}, e o clima ajuda.`;
+    return `Água a ${t} °C, ainda abaixo do ideal, mas o clima ajuda.`;
   }
   switch (perda.k) {
-    case "agua":
-      if (b.tempAgua < e.otMin) return `Água fria: ${fmt(b.tempAgua)} °C estimados, e a ${e.nome.toLowerCase()} gosta de ${e.otMin}–${e.otMax} °C.`;
-      return `Água quente demais: ${fmt(b.tempAgua)} °C estimados, acima dos ${e.otMin}–${e.otMax} °C que ela prefere.`;
     case "tendencia":
-      return b.deltaAgua48h < -3 ? "A água esfriou mais de 3 °C em 48 h." : "A água está parada, sem esquentar rumo ao ótimo.";
+      return `A água esfriou ${fmt(Math.abs(b.deltaAgua48h))} °C em 48 h: peixe costuma sentir a queda.`;
     case "pressao":
-      return b.deltaPressao24h > 4 ? "Pressão subindo rápido: sinal de frente fria passando." : `Pressão variou ${fmt(b.deltaPressao24h)} hPa em 24 h, fora do melhor ponto.`;
+      return b.deltaPressao24h > 4 ? "Pressão subindo rápido: sinal de frente fria passando." : `Pressão variou ${fmt(b.deltaPressao24h)} hPa em 24 h.`;
     case "vento":
-      return b.vento < 1 ? "Quase sem vento: a água fica parada e clara." : `Vento médio de ${fmt(b.vento)} m/s atrapalha a pescaria.`;
+      return b.vento < 1 ? "Quase sem vento: a água fica parada e clara." : `Vento de ${fmt(b.vento)} m/s atrapalha a pescaria.`;
     case "chuva":
       return `${fmt(b.chuva48h, 0)} mm de chuva em 48 h: a água tende a ficar barrenta.`;
-    case "lua":
-      return "A lua é o que mais tira pontos, e ela vale pouco. Dia equilibrado.";
     case "nuvens":
-      return b.nuvens < 40 ? "Céu limpo demais: muita luz na água." : "Céu muito fechado, fora da faixa de 40 a 80% de nuvens.";
+      return b.nuvens < 40 ? "Céu limpo demais: muita luz na água." : "Céu muito fechado.";
+    case "lua":
+      return "Dia equilibrado: a lua é o que mais tira, e ela vale pouco.";
   }
 }

@@ -6,10 +6,11 @@ export const locais = pgTable("locais", {
   tipo: text("tipo").notNull(),
   lat: real("lat").notNull(),
   lon: real("lon").notNull(),
-  // Regressão Tágua = a + b × média do ar, recalculada a cada medição nova.
+  // Tágua = a + b × modelo, recalculada a cada medição nova de termômetro.
   calibA: real("calib_a"),
   calibB: real("calib_b"),
   calibN: integer("calib_n"),
+  profundidade: real("profundidade"),
 });
 
 export const usuarios = pgTable("usuarios", {
@@ -52,8 +53,10 @@ export const medicoesAgua = pgTable("medicoes_agua", {
   localId: text("local_id").notNull().references(() => locais.id),
   medidoEm: timestamp("medido_em", { withTimezone: true }).notNull().defaultNow(),
   temperatura: real("temperatura").notNull(),
-  // Média do ar no dia da medição; é o "x" da regressão.
+  // Medições antigas, da fórmula anterior. Não entram mais na calibração.
   mediaAr: real("media_ar"),
+  // O que o modelo estimava na hora da medição: é o "x" da calibração.
+  aguaModelo: real("agua_modelo"),
 });
 
 export const previsoes = pgTable(

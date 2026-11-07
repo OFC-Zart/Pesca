@@ -1,82 +1,124 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CONFIANCA_TABELA, ESPECIES } from "@/config/indice";
+import { CONFIANCA_TABELA, ESPECIES, ESPECIE_IDS, PESOS } from "@/config/indice";
+import { calibrar, inerciaDoLocal, prepararHoras, regressao, simularAgua } from "@/lib/indice/agua";
 import { calcularAstro } from "@/lib/indice/astro";
 import {
   agruparDias,
-  calcularBrutos,
-  calcularFatores,
+  apetite,
+  avaliarDia,
+  condicoes,
   confiancaTabela,
   escala,
-  estimarAgua,
-  janelaDaHora,
+  fatoresDaHora,
+  fraseMotivo,
+  janelaDeLuz,
   melhorHora,
   notaChuva,
+  notaDaHora,
   notaLua,
   notaNuvens,
   notaPressao,
   notaTendencia,
   notaVento,
-  notasPorHora,
-  regressao,
-  somarNota,
-  trapezio,
 } from "@/lib/indice/calculo";
 import { hojeEmSaoPaulo, montarPrevisao } from "@/lib/indice/previsao";
-import type { Astro, DiaClima, Local, SerieClima } from "@/lib/indice/tipos";
+import type { Astro, Fatores, HoraClima, Local, SerieClima } from "@/lib/indice/tipos";
 import { horasDaSaida, resumirCpue } from "@/lib/cpue";
 
-const traira = ESPECIES.traira;
+const { traira, tilapia, jundia, carpaCapim, bass } = ESPECIES;
+const media = (v: number[]) => v.reduce((a, b) => a + b, 0) / v.length;
 
-describe("fatores da seção 3", () => {
-  it("curva trapezoidal", () => {
-    expect(trapezio(25, traira)).toBe(1);
-    expect(trapezio(14, traira)).toBe(0);
-    expect(trapezio(33, traira)).toBe(0);
-    expect(trapezio(18, traira)).toBeCloseTo(0.5);
-    expect(trapezio(30.5, traira)).toBeCloseTo(0.5);
+describe("apetite pela temperatura", () => {
+  it("zero nos limites e cheio na faixa ótima", () => {
+    expect(apetite(11, traira)).toBe(0);
+    expect(apetite(36, traira)).toBe(0);
+    expect(apetite(24, traira)).toBe(1);
+    expect(apetite(30, traira)).toBe(1);
   });
 
-  it("lua: 1 na nova e na cheia, 0,5 nos quartos, 0,90 no exemplo do documento", () => {
+  it("tilápia não come abaixo de 16 °C, como dizem a Epagri e os estudos", () => {
+    expect(apetite(16, tilapia)).toBe(0);
+    expect(apetite(12, tilapia)).toBe(0);
+    expect(apetite(20, tilapia)).toBeLessThan(0.35);
+    expect(apetite(28, tilapia)).toBe(1);
+  });
+
+  it("abaixo do ótimo a curva é côncava: o meio do caminho rende menos que a metade", () => {
+    expect(apetite(21, tilapia)).toBeCloseTo(0.5 ** 1.3, 5);
+    expect(apetite(21, tilapia)).toBeLessThan(0.5);
+  });
+
+  it("acima do ótimo cai em linha reta até o limite", () => {
+    expect(apetite(33, traira)).toBeCloseTo(0.5);
+  });
+
+  it("jundiá aguenta mais frio que traíra, e traíra mais que tilápia", () => {
+    expect(apetite(14, jundia)).toBeGreaterThan(apetite(14, traira));
+    expect(apetite(18, traira)).toBeGreaterThan(apetite(18, tilapia));
+  });
+
+  it("toda espécie tem faixas em ordem", () => {
+    for (const id of ESPECIE_IDS) {
+      const e = ESPECIES[id];
+      expect(e.min).toBeLessThan(e.otMin);
+      expect(e.otMin).toBeLessThan(e.otMax);
+      expect(e.otMax).toBeLessThan(e.max);
+    }
+  });
+});
+
+describe("condições do momento", () => {
+  it("lua: 1 na nova e na cheia, 0,5 nos quartos", () => {
     expect(notaLua(0)).toBeCloseTo(1);
     expect(notaLua(29.53 / 2)).toBeCloseTo(1);
     expect(notaLua(29.53 / 4)).toBeCloseTo(0.5);
-    expect(notaLua(29.53 - 3)).toBeCloseTo(0.9, 1);
   });
 
-  it("pressão", () => {
-    expect(notaPressao(0)).toBe(0.8);
+  it("pressão: subir rápido, sinal de frente fria, é o pior caso", () => {
+    expect(notaPressao(0)).toBe(0.85);
     expect(notaPressao(-4)).toBe(1);
-    expect(notaPressao(-7)).toBe(0.6);
-    expect(notaPressao(5)).toBe(0.2);
-    expect(notaPressao(3)).toBe(0.8);
+    expect(notaPressao(-7)).toBe(0.65);
+    expect(notaPressao(5)).toBe(0.3);
   });
 
   it("vento", () => {
-    expect(notaVento(0.5)).toBe(0.6);
+    expect(notaVento(0.5)).toBe(0.7);
     expect(notaVento(3)).toBe(1);
-    expect(notaVento(6)).toBe(0.5);
-    expect(notaVento(9)).toBe(0.1);
+    expect(notaVento(6)).toBe(0.55);
+    expect(notaVento(9)).toBe(0.15);
   });
 
-  it("chuva usa o perfil da espécie só acima de 30 mm", () => {
-    expect(notaChuva(5, traira)).toBe(1);
-    expect(notaChuva(20, traira)).toBe(0.6);
-    expect(notaChuva(40, traira)).toBe(0.3);
-    expect(notaChuva(40, ESPECIES.jundia)).toBe(0.8);
+  it("chuva depende do peixe, e a chuva forte daquela hora pesa", () => {
+    expect(notaChuva(5, 0, traira)).toBe(1);
+    expect(notaChuva(20, 0, traira)).toBeCloseTo(0.65);
+    expect(notaChuva(40, 0, traira)).toBe(0.3);
+    expect(notaChuva(40, 0, jundia)).toBe(0.8);
+    expect(notaChuva(5, 6, traira)).toBeCloseTo(0.7);
   });
 
-  it("nuvens: céu limpo vem do perfil; muito fechado vale 0,6", () => {
-    expect(notaNuvens(60, ESPECIES.tilapia)).toBe(1);
-    expect(notaNuvens(10, ESPECIES.tilapia)).toBe(1);
-    expect(notaNuvens(10, traira)).toBe(0.6);
-    expect(notaNuvens(95, ESPECIES.tilapia)).toBe(0.6);
+  it("nuvens só contam de dia", () => {
+    expect(notaNuvens(60, true, tilapia)).toBe(1);
+    expect(notaNuvens(10, true, traira)).toBe(0.6);
+    expect(notaNuvens(95, true, traira)).toBe(0.85);
+    expect(notaNuvens(10, false, traira)).toBe(1);
   });
 
-  it("tendência", () => {
+  it("tendência: quanto mais a água esfria, pior", () => {
     expect(notaTendencia(18, 2, traira)).toBe(1);
-    expect(notaTendencia(18, 0, traira)).toBe(0.5);
-    expect(notaTendencia(18, -4, traira)).toBe(0.2);
-    expect(notaTendencia(30, 2, traira)).toBe(0.5);
+    expect(notaTendencia(18, 0, traira)).toBeCloseTo(0.91, 2);
+    expect(notaTendencia(18, -1, traira)).toBeCloseTo(0.7);
+    expect(notaTendencia(18, -2, traira)).toBeCloseTo(0.45);
+    expect(notaTendencia(18, -6, traira)).toBe(0.1);
+  });
+
+  it("água quente demais: esfriar ajuda", () => {
+    expect(notaTendencia(33, -1, traira)).toBe(1);
+    expect(notaTendencia(33, 1, traira)).toBe(0.7);
+  });
+
+  it("os pesos das condições somam 1", () => {
+    expect(Object.values(PESOS).reduce((a, b) => a + b, 0)).toBeCloseTo(1);
   });
 
   it("escala nas fronteiras", () => {
@@ -85,63 +127,244 @@ describe("fatores da seção 3", () => {
     ]);
     expect(escala(90).peixes).toBe(5);
   });
+});
 
-  it("os pesos somam 1: tudo em 1 dá 100", () => {
-    expect(somarNota({ agua: 1, tendencia: 1, pressao: 1, vento: 1, chuva: 1, lua: 1, nuvens: 1 })).toBe(100);
+const tudoBom: Fatores = { agua: 1, tendencia: 1, pressao: 1, vento: 1, chuva: 1, lua: 1, nuvens: 1 };
+
+describe("a nota é um produto", () => {
+  it("tudo perfeito dá 100", () => {
+    expect(notaDaHora(tudoBom, 1)).toBe(100);
+  });
+
+  it("sem apetite, nenhum clima salva: era o principal erro da fórmula antiga", () => {
+    expect(notaDaHora({ ...tudoBom, agua: 0 }, 1)).toBe(0);
+  });
+
+  it("água pela metade corta a nota pela metade", () => {
+    expect(notaDaHora({ ...tudoBom, agua: 0.5 }, 1)).toBe(50);
+    expect(notaDaHora(tudoBom, 0.5)).toBe(50);
+  });
+
+  it("confere a conta à mão", () => {
+    const f: Fatores = { agua: 0.8, tendencia: 0.9, vento: 1, chuva: 1, nuvens: 1, pressao: 0.85, lua: 0.75 };
+    const c = 0.3 * 0.9 + 0.2 + 0.2 + 0.15 + 0.1 * 0.85 + 0.05 * 0.75;
+    expect(condicoes(f)).toBeCloseTo(c);
+    expect(notaDaHora(f, 0.9)).toBe(Math.round(100 * 0.8 * 0.9 * c ** 2));
+  });
+
+  it("condições medianas não chegam a Excelente", () => {
+    const medianas: Fatores = { ...tudoBom, tendencia: 0.9, vento: 0.7, pressao: 0.85, nuvens: 0.85, lua: 0.75 };
+    expect(escala(notaDaHora(medianas, 1)).nome).not.toBe("Excelente");
   });
 });
 
-describe("água estimada (seção 4)", () => {
-  const dias = [10, 12, 14, 16, 18, 20, 22, 24].map((temp, i) => ({ temp, data: `d${i}` })) as DiaClima[];
-  const i = 7;
-  it("rio: média de 3 dias", () => expect(estimarAgua(dias, i, { tipo: "rio" })).toBeCloseTo(22));
-  it("açude: média de 7 dias + 1", () => expect(estimarAgua(dias, i, { tipo: "acude" })).toBeCloseTo(19));
-  it("rio de truta: 0,7 × 3 dias + 3", () => expect(estimarAgua(dias, i, { tipo: "rio_truta" })).toBeCloseTo(18.4));
-  it("calibração do local tem prioridade", () =>
-    expect(estimarAgua(dias, i, { tipo: "rio", calibA: 2, calibB: 0.5 })).toBeCloseTo(13));
-  it("regressão recupera a reta", () => {
-    const r = regressao([10, 15, 20].map((x) => ({ x, y: 3 + 0.8 * x })))!;
-    expect(r.a).toBeCloseTo(3);
-    expect(r.b).toBeCloseTo(0.8);
-  });
-});
+const astro: Astro = { nascerSol: 5.5, porSol: 19, nascerLua: 2, porLua: 15, luaAlta: 9, luaBaixa: 21.5, idadeLua: 1, iluminacao: 0.1, crescente: true };
 
-describe("janela por hora", () => {
-  const astro: Astro = {
-    nascerSol: 5.5, porSol: 19, nascerLua: 2, porLua: 15, luaAlta: 9, luaBaixa: 21.5,
-    idadeLua: 1, iluminacao: 0.1, crescente: true,
-  };
-  it("misto: sol, solunar maior, menor e resto", () => {
-    expect(janelaDaHora(5, "misto", astro)).toBe(1);
-    expect(janelaDaHora(19, "misto", astro)).toBe(1);
-    expect(janelaDaHora(9, "misto", astro)).toBe(0.8);
-    expect(janelaDaHora(2, "misto", astro)).toBe(0.6);
-    expect(janelaDaHora(12, "misto", astro)).toBe(0.3);
+describe("janela de luz", () => {
+  it("bass: cheio no amanhecer e entardecer, fraco no meio do dia", () => {
+    expect(janelaDeLuz(5, bass, astro)).toBe(1);
+    expect(janelaDeLuz(18, bass, astro)).toBe(1);
+    expect(janelaDeLuz(12, bass, astro)).toBe(0.45);
   });
-  it("diurno: 7h às 17h", () => {
-    expect(janelaDaHora(7, "diurno", astro)).toBe(1);
-    expect(janelaDaHora(16, "diurno", astro)).toBe(1);
-    expect(janelaDaHora(17, "diurno", astro)).toBe(0.3);
-    expect(janelaDaHora(23, "diurno", astro)).toBe(0.3);
+
+  it("a diferença entre horas agora é grande, como no estudo com bass: o pior vale menos da metade do melhor", () => {
+    expect(janelaDeLuz(12, bass, astro) / janelaDeLuz(18, bass, astro)).toBeLessThan(0.5);
   });
-  it("noturno: 19h às 5h com 0,9", () => {
-    expect(janelaDaHora(19, "noturno", astro)).toBe(0.9);
-    expect(janelaDaHora(2, "noturno", astro)).toBe(0.9);
-    expect(janelaDaHora(5, "noturno", astro)).toBe(0.3);
-    expect(janelaDaHora(12, "noturno", astro)).toBe(0.3);
+
+  it("noturno: rende de noite e mal de dia", () => {
+    expect(janelaDeLuz(22, jundia, astro)).toBeGreaterThan(0.9);
+    expect(janelaDeLuz(12, jundia, astro)).toBe(0.25);
   });
-  it("nota da hora = dia × (0,7 + 0,3 × janela)", () => {
-    const h = notasPorHora(80, ESPECIES.carpaComum, astro);
-    expect(h).toHaveLength(24);
-    expect(h[5]).toBe(80);
-    expect(h[12]).toBe(Math.round(80 * 0.79));
+
+  it("o começo da noite rende um pouco mais que a madrugada, sem empatar em meia-noite", () => {
+    expect(janelaDeLuz(21, jundia, astro)).toBeGreaterThan(janelaDeLuz(2, jundia, astro));
   });
+
+  it("diurno: tilápia e carpa capim de dia", () => {
+    expect(janelaDeLuz(12, tilapia, astro)).toBe(1);
+    expect(janelaDeLuz(23, tilapia, astro)).toBeLessThan(0.15);
+    expect(janelaDeLuz(12, carpaCapim, astro)).toBe(1);
+  });
+
+  it("a transição é suave, sem salto de uma hora para outra", () => {
+    for (const id of ESPECIE_IDS) {
+      for (let h = 1; h < 24; h++) {
+        const salto = Math.abs(janelaDeLuz(h, ESPECIES[id], astro) - janelaDeLuz(h - 1, ESPECIES[id], astro));
+        expect(salto).toBeLessThanOrEqual(0.71);
+      }
+    }
+  });
+
   it("melhor hora respeita as horas que já passaram", () => {
     const h = Array(24).fill(10);
     h[3] = 50;
     h[20] = 30;
     expect(melhorHora(h)).toBe(3);
     expect(melhorHora(h, 10)).toBe(20);
+  });
+});
+
+describe("água estimada", () => {
+  const constante = (temp: number, sol: number, horas: number) => ({ temp: Array(horas).fill(temp), sol: Array(horas).fill(sol) });
+  const acude = { tipo: "acude" } as const;
+
+  it("sem sol, a água chega à temperatura do ar", () => {
+    expect(simularAgua(constante(18, 0, 24 * 90), acude).at(-1)!).toBeCloseTo(18, 1);
+  });
+
+  it("com sol, fica acima do ar: 300 W/m² dão uns 4 °C, como nos açudes medidos", () => {
+    const agua = simularAgua(constante(20, 300, 24 * 90), acude).at(-1)!;
+    expect(agua - 20).toBeGreaterThan(3.5);
+    expect(agua - 20).toBeLessThan(4.6);
+  });
+
+  it("açude fundo muda mais devagar que açude raso", () => {
+    const degrau = { temp: [...Array(24 * 60).fill(25), ...Array(24 * 3).fill(10)], sol: Array(24 * 63).fill(0) };
+    const raso = simularAgua(degrau, { tipo: "acude", profundidade: 1 }).at(-1)!;
+    const fundo = simularAgua(degrau, { tipo: "acude", profundidade: 5 }).at(-1)!;
+    expect(raso).toBeLessThan(fundo);
+    expect(fundo).toBeGreaterThan(18);
+    expect(inerciaDoLocal({ tipo: "acude", profundidade: 5 })).toBeCloseTo(9.7);
+  });
+
+  it("frente fria curta não derruba o açude na hora: água tem inércia", () => {
+    const frente = { temp: [...Array(24 * 60).fill(22), ...Array(24).fill(8)], sol: Array(24 * 61).fill(0) };
+    expect(simularAgua(frente, acude).at(-1)!).toBeGreaterThan(18);
+  });
+
+  it("buraco nos dados não quebra", () => {
+    const r = simularAgua({ temp: [20, null, null, 20], sol: [null, 100, null, 100] }, acude);
+    expect(r.every((x) => Number.isFinite(x))).toBe(true);
+  });
+
+  it("confere com a água medida pela Epagri em Caçador, 2009", () => {
+    const c = JSON.parse(readFileSync("tests/dados/cacador-2009.json", "utf8"));
+    const agua = simularAgua({ temp: c.temp, sol: c.sol }, acude);
+    const naHora = (hh: string) => c.tempo.map((t: string, i: number) => (t >= "2009-03-23" && t.slice(11, 13) === hh ? agua[i] : null)).filter((x: number | null) => x !== null);
+    expect(Math.abs(media(naHora("09")) - 15.9)).toBeLessThan(0.5);
+    expect(Math.abs(media(naHora("15")) - 16.9)).toBeLessThan(0.6);
+    expect(media(naHora("15"))).toBeGreaterThan(media(naHora("09")));
+  });
+});
+
+describe("calibração pelo termômetro", () => {
+  it("regressão recupera a reta", () => {
+    const r = regressao([10, 15, 20].map((x) => ({ x, y: 3 + 0.8 * x })))!;
+    expect(r.a).toBeCloseTo(3);
+    expect(r.b).toBeCloseTo(0.8);
+  });
+
+  it("com menos de 3 medições não mexe em nada", () => {
+    expect(calibrar([{ x: 20, y: 22 }, { x: 21, y: 23 }])).toBeNull();
+  });
+
+  it("com poucas medições, corrige só o desvio médio", () => {
+    expect(calibrar([{ x: 20, y: 22 }, { x: 21, y: 22 }, { x: 22, y: 25 }])).toEqual({ a: 2, b: 1 });
+  });
+
+  it("muitas medições na mesma época também não viram reta: seria ruído", () => {
+    const pontos = Array.from({ length: 12 }, (_, i) => ({ x: 20 + i * 0.1, y: 22 + i * 0.3 }));
+    expect(calibrar(pontos)!.b).toBe(1);
+  });
+
+  it("muitas medições em épocas diferentes viram reta", () => {
+    const pontos = Array.from({ length: 12 }, (_, i) => ({ x: 12 + i, y: 2 + 0.9 * (12 + i) }));
+    const c = calibrar(pontos)!;
+    expect(c.a).toBeCloseTo(2);
+    expect(c.b).toBeCloseTo(0.9);
+  });
+
+  it("reta absurda é recusada", () => {
+    const pontos = Array.from({ length: 12 }, (_, i) => ({ x: 12 + i, y: 40 - 2 * i }));
+    expect(calibrar(pontos)!.b).toBe(1);
+  });
+});
+
+function serieFalsa(inicio: string, dias: number, sobre: Partial<Record<keyof SerieClima, (h: number) => number | null>> = {}): SerieClima {
+  const tempo: string[] = [];
+  const base = Date.UTC(+inicio.slice(0, 4), +inicio.slice(5, 7) - 1, +inicio.slice(8, 10));
+  for (let h = 0; h < dias * 24; h++) tempo.push(new Date(base + h * 3600000).toISOString().slice(0, 16));
+  const v = (k: keyof SerieClima, d: number) => tempo.map((_, h) => (sobre[k] ? sobre[k]!(h) : d));
+  return {
+    tempo,
+    temp: v("temp", 24), pressao: v("pressao", 1015), vento: v("vento", 3),
+    chuva: v("chuva", 0), nuvens: v("nuvens", 60), codigo: v("codigo", 1), sol: v("sol", 150),
+  };
+}
+
+const local: Local = { id: "x", nome: "X", tipo: "acude", lat: -27.8, lon: -50.88 };
+
+describe("horas preparadas", () => {
+  it("chuva de 48 h é uma soma móvel", () => {
+    const h = prepararHoras(serieFalsa("2026-11-01", 4, { chuva: (i) => (i === 10 ? 20 : 0) }), local);
+    expect(h[9].chuva48h).toBe(0);
+    expect(h[10].chuva48h).toBe(20);
+    expect(h[57].chuva48h).toBe(20);
+    expect(h[58].chuva48h).toBe(0);
+  });
+
+  it("variação da pressão compara com 24 h antes", () => {
+    const h = prepararHoras(serieFalsa("2026-11-01", 3, { pressao: (i) => 1000 + i }), local);
+    expect(h[30].deltaPressao24h).toBe(24);
+  });
+
+  it("calibração do local entra na água, mas a saída do modelo fica guardada para recalibrar", () => {
+    const s = serieFalsa("2026-11-01", 3);
+    const sem = prepararHoras(s, local);
+    const com = prepararHoras(s, { ...local, calibA: 2, calibB: 1 });
+    expect(com[50].tempAgua).toBeCloseTo(sem[50].tempAgua + 2);
+    expect(com[50].aguaModelo).toBeCloseTo(sem[50].aguaModelo);
+  });
+
+  it("data e hora locais saem do texto, sem depender do fuso do servidor", () => {
+    const h = prepararHoras(serieFalsa("2026-11-01", 1), local);
+    expect(h[5].data).toBe("2026-11-01");
+    expect(h[5].hora).toBe(5);
+  });
+});
+
+describe("dia avaliado", () => {
+  const horaBase: HoraClima = { data: "2026-11-06", hora: 0, tempAr: 20, tempAgua: 25, aguaModelo: 25, deltaAgua48h: 0, deltaPressao24h: 0, vento: 3, chuvaHora: 0, chuva48h: 0, nuvens: 60 };
+  const dia = (sobre: Partial<HoraClima> = {}) => Array.from({ length: 24 }, (_, hora) => ({ ...horaBase, hora, ...sobre }));
+
+  it("nota do dia é a média das 4 melhores horas e a melhor hora vem junto", () => {
+    const av = avaliarDia(dia(), traira, astro);
+    const topo = [...av.horas].sort((a, b) => b - a).slice(0, 4);
+    expect(av.nota).toBe(Math.round(media(topo)));
+    expect(av.horas[av.melhor.hora]).toBe(Math.max(...av.horas));
+    expect(av.horas).toHaveLength(24);
+  });
+
+  it("água gelada dá Fraco para a tilápia, com qualquer clima", () => {
+    const av = avaliarDia(dia({ tempAgua: 13 }), tilapia, astro);
+    expect(av.nota).toBe(0);
+    expect(escala(av.nota).nome).toBe("Fraco");
+  });
+
+  it("frente fria derruba a nota do mesmo dia", () => {
+    const normal = avaliarDia(dia(), traira, astro).nota;
+    const frente = avaliarDia(dia({ deltaAgua48h: -3, deltaPressao24h: 6 }), traira, astro).nota;
+    expect(frente).toBeLessThan(normal * 0.8);
+  });
+
+  it("o melhor horário muda com o peixe", () => {
+    const pico = (id: keyof typeof ESPECIES) => avaliarDia(dia(), ESPECIES[id], astro).melhor.hora;
+    expect([4, 5, 6, 17, 18, 19]).toContain(pico("bass"));
+    expect([19, 20, 21, 22, 23]).toContain(pico("jundia"));
+    expect(janelaDeLuz(pico("tilapia"), tilapia, astro)).toBe(1);
+  });
+
+  it("vento forte naquela hora pesa só naquela hora", () => {
+    const horas = dia().map((h) => (h.hora === 18 ? { ...h, vento: 10 } : h));
+    const av = avaliarDia(horas, bass, astro);
+    expect(av.horas[18]).toBeLessThan(av.horas[17]);
+  });
+
+  it("a frase diz o motivo real, com o artigo certo", () => {
+    const f = fatoresDaHora({ ...horaBase, tempAgua: 13 }, tilapia, astro);
+    expect(fraseMotivo("tilapia", 0, f, { ...horaBase, tempAgua: 13 })).toContain("a tilápia praticamente não come");
+    const g = fatoresDaHora({ ...horaBase, tempAgua: 9 }, jundia, astro);
+    expect(fraseMotivo("jundia", 5, g, { ...horaBase, tempAgua: 9 })).toContain("o jundiá só come bem");
   });
 });
 
@@ -170,20 +393,7 @@ describe("confiança", () => {
   });
 });
 
-function serieFalsa(inicio: string, dias: number, sobre: Partial<Record<keyof SerieClima, (h: number) => number | null>> = {}): SerieClima {
-  const tempo: string[] = [];
-  const base = Date.UTC(+inicio.slice(0, 4), +inicio.slice(5, 7) - 1, +inicio.slice(8, 10));
-  for (let h = 0; h < dias * 24; h++) tempo.push(new Date(base + h * 3600000).toISOString().slice(0, 16));
-  const v = (k: keyof SerieClima, d: number) => tempo.map((_, h) => (sobre[k] ? sobre[k]!(h) : d));
-  return {
-    tempo,
-    temp: v("temp", 24), pressao: v("pressao", 1015), vento: v("vento", 3),
-    chuva: v("chuva", 0), nuvens: v("nuvens", 60), codigo: v("codigo", 1),
-  };
-}
-
 describe("previsão montada", () => {
-  const local: Local = { id: "x", nome: "X", tipo: "rio", lat: -27.8, lon: -50.88 };
   const comum = { local, locais: [local], offsetSeg: -10800, hoje: "2026-11-06", agora: new Date("2026-11-06T15:00:00Z") };
 
   it("fases por dia: 3 completos, 4 em faixa, resto tendência", () => {
@@ -195,14 +405,33 @@ describe("previsão montada", () => {
     expect(p.dias[0].especies.traira.horas).toHaveLength(24);
     expect(p.dias[4].especies.traira.horas).toBeNull();
     expect(p.dias[8].especies.traira.nota).toBeNull();
+    expect(p.dias[8].especies.traira.fatores.agua).toBeGreaterThan(0);
     expect(p.fonteConfianca).toBe("tabela");
+    expect(p.versaoModelo).toBe(2);
   });
 
-  it("calcula a nota à mão no dia estável", () => {
-    const p = montarPrevisao({ ...comum, serie: serieFalsa("2026-10-30", 23), cenarios: null });
-    const d = p.dias[0];
-    // água 24 °C = 1 (0,35) · estável 0,5 (0,05) · pressão estável 0,8 (0,12) · vento 1 (0,10) · chuva 1 (0,10) · nuvens 1 (0,10) · lua × 0,10
-    expect(d.especies.traira.nota).toBe(Math.round(100 * (0.82 + 0.1 * notaLua(d.astro.idadeLua))));
+  it("inverno: peixe de água quente despenca, e jundiá e carpa aguentam melhor", () => {
+    const inverno = serieFalsa("2026-10-30", 23, { temp: () => 11, sol: () => 120 });
+    const d = montarPrevisao({ ...comum, serie: inverno, cenarios: null }).dias[0];
+    expect(d.especies.tilapia.nota).toBe(0);
+    expect(d.especies.jundia.nota!).toBeGreaterThan(d.especies.traira.nota!);
+    expect(d.especies.carpaComum.nota!).toBeGreaterThan(d.especies.dourado.nota!);
+    expect(escala(d.especies.traira.nota!).nome).toBe("Fraco");
+  });
+
+  it("verão com água boa dá nota alta", () => {
+    const verao = serieFalsa("2026-10-30", 23, { temp: () => 22, sol: () => 280 });
+    const d = montarPrevisao({ ...comum, serie: verao, cenarios: null }).dias[0];
+    expect(d.especies.traira.nota!).toBeGreaterThan(70);
+    expect(d.especies.jundia.nota!).toBeGreaterThan(70);
+  });
+
+  it("guarda o clima da melhor hora junto da nota", () => {
+    const d = montarPrevisao({ ...comum, serie: serieFalsa("2026-10-30", 23), cenarios: null }).dias[0];
+    const n = d.especies.jundia;
+    expect(n.horas![n.base.hora]).toBe(Math.max(...n.horas!));
+    expect(n.base.vento).toBe(3);
+    expect(n.horario).toBeGreaterThan(0.8);
   });
 
   it("bloqueia por vento forte e por tempestade", () => {
@@ -216,9 +445,9 @@ describe("previsão montada", () => {
     expect(montarPrevisao({ ...comum, serie: raio, cenarios: null }).dias[0].bloqueio).toContain("Tempestade");
   });
 
-  it("ensemble: faixa dos cenários, mediana nos dias 4 a 7, confiança pela largura", () => {
+  it("ensemble: faixa dos cenários, mediana nos dias 4 a 7", () => {
     const serie = serieFalsa("2026-10-30", 23);
-    const cenarios = [18, 20, 22, 24, 26].map((t) => serieFalsa("2026-10-30", 15, { temp: () => t }));
+    const cenarios = [12, 16, 20, 24, 28].map((t) => serieFalsa("2026-10-30", 15, { temp: () => t }));
     const p = montarPrevisao({ ...comum, serie, cenarios });
     const d = p.dias[4].especies.bass;
     expect(p.fonteConfianca).toBe("ensemble");
@@ -242,7 +471,6 @@ describe("previsão montada", () => {
     const d = agruparDias(s);
     expect(d).toHaveLength(1);
     expect(d[0].data).toBe("2026-11-02");
-    expect(calcularFatores(calcularBrutos(d, 0, local), 1, traira).agua).toBeCloseTo(0.75);
   });
 
   it("data de hoje usa o fuso de São Paulo, não o do servidor", () => {

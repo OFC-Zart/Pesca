@@ -1,6 +1,7 @@
 "use client";
 
 import type { EntradaSaida } from "@/lib/esquemas";
+import { VERSAO_MODELO } from "@/config/indice";
 import type { Previsao } from "@/lib/indice/tipos";
 
 /** O armazenamento do navegador pode falhar (aba privada, memória cheia): nada aqui deve derrubar a tela. */
@@ -28,8 +29,9 @@ export const prefs = {
   setLocal: (v: string) => gravar("idfish:local", v),
 };
 
-export const lerPrevisao = (local: string) => ler<Previsao>(`idfish:previsao:${local}`);
-export const gravarPrevisao = (local: string, p: Previsao) => gravar(`idfish:previsao:${local}`, p);
+const chavePrevisao = (local: string) => `idfish:previsao:v${VERSAO_MODELO}:${local}`;
+export const lerPrevisao = (local: string) => ler<Previsao>(chavePrevisao(local));
+export const gravarPrevisao = (local: string, p: Previsao) => gravar(chavePrevisao(local), p);
 
 const CHAVE_DIARIO = "idfish:diario";
 

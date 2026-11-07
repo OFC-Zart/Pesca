@@ -99,7 +99,7 @@ export function FormEntrar() {
             type="button"
             aria-pressed={modo === m}
             onClick={() => trocarModo(m)}
-            className={`min-h-11 rounded-lg text-sm font-semibold transition-colors ${modo === m ? "bg-brotinho text-breu" : "text-osso hover:bg-osso/5"}`}
+            className={`min-h-11 rounded-lg text-sm font-semibold ${modo === m ? "bg-brotinho text-breu" : "text-osso hover:bg-osso/5"}`}
           >
             {m === "entrar" ? "Já tenho conta" : "Criar conta"}
           </button>

@@ -15,6 +15,13 @@
       "when": 1794016096829,
       "tag": "0001_dry_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794021252780,
+      "tag": "0002_melted_dazzler",
+      "breakpoints": true
     }
   ]
 }
