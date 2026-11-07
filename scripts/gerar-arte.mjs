@@ -73,11 +73,16 @@ await (await recortar(SIMBOLO)).toFile("public/logo-simbolo.png");
 await (await recortar(NOME)).toFile("public/logo-nome.png");
 await (await recortar(COMPLETO)).toFile("public/logo-completo.png");
 
-const simbolo = await (await recortar(SIMBOLO)).toBuffer();
-for (const [nome, tam, margem] of [["icon-192", 192, 0.08], ["icon-512", 512, 0.08], ["maskable-512", 512, 0.2], ["apple-touch", 180, 0.08], ["favicon", 64, 0.02]]) {
+// No ícone, o peixe ocupa o máximo possível e ganha contraste: na tela do celular ele tem só uns 48 px.
+const simbolo = await sharp(await (await recortar(SIMBOLO)).toBuffer()).trim({ threshold: 4 }).modulate({ brightness: 1.25 }).png().toBuffer();
+const fundoIcone = (tam) =>
+  Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${tam}" height="${tam}"><defs><radialGradient id="g" cx="50%" cy="46%" r="72%"><stop offset="0" stop-color="#3a4d2c"/><stop offset="1" stop-color="#121a10"/></radialGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>`,
+  );
+for (const [nome, tam, margem] of [["icon-192", 192, 0.05], ["icon-512", 512, 0.05], ["maskable-512", 512, 0.15], ["apple-touch", 180, 0.07], ["favicon", 64, 0.01]]) {
   const interno = Math.round(tam * (1 - margem * 2));
   const m = await sharp(simbolo).resize(interno, interno, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
-  await sharp({ create: { width: tam, height: tam, channels: 4, background: "#0b0f0a" } })
+  await sharp(fundoIcone(tam))
     .composite([{ input: m, gravity: "center" }])
     .png()
     .toFile(`public/icons/${nome}.png`);

@@ -1,5 +1,5 @@
 // Deixa o site abrir sem sinal na beira do rio.
-const CACHE = "idfish-v5";
+const CACHE = "idfish-v6";
 const PAGINAS = ["/", "/registrar", "/historico", "/como-funciona", "/perfil", "/locais"];
 
 self.addEventListener("install", (e) => {
