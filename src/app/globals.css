@@ -43,6 +43,11 @@
   --text-sm--line-height: 1.4;
 }
 
+:root {
+  /* Contorno dos cartões: verde-claro, visível sem brigar com o conteúdo. */
+  --contorno: color-mix(in srgb, var(--color-brotinho) 55%, transparent);
+}
+
 html {
   background: var(--color-breu);
   color-scheme: dark;
@@ -94,7 +99,7 @@ body::after {
 
 .painel {
   background: var(--color-sombra);
-  border: 1px solid rgb(243 240 228 / 0.1);
+  border: 1px solid var(--contorno);
   border-radius: 16px;
 }
 .painel-acento {
@@ -112,7 +117,7 @@ body::after {
 .ficha {
   border-radius: 14px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--acento) 15%, var(--color-sombra)), var(--color-sombra) 70%);
-  border: 1px solid color-mix(in srgb, var(--acento) 26%, transparent);
+  border: 1px solid var(--contorno);
 }
 
 .icone-chip {
@@ -159,7 +164,7 @@ body::after {
   position: relative;
   overflow: hidden;
   border-radius: 20px;
-  border: 1px solid rgb(243 240 228 / 0.12);
+  border: 1px solid var(--contorno);
   background:
     radial-gradient(110% 80% at 0% 0%, color-mix(in srgb, var(--acento, #a9cb54) 20%, transparent), transparent 62%),
     var(--color-sombra);
