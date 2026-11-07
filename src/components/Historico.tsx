@@ -4,15 +4,17 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CloudUpload, Fish } from "lucide-react";
 import { ESPECIES, LOCAIS_PADRAO, type EspecieId } from "@/config/indice";
-import { enviarPendentes, lerDiario } from "@/lib/armazem";
+import { enviarPendentes, lerDiario, lerPerfil } from "@/lib/armazem";
 import { resumirCpue, horasDaSaida, type SaidaResumo } from "@/lib/cpue";
 import { diaMes } from "@/lib/formato";
 import { fmt } from "@/lib/indice/calculo";
+import { Avatar } from "./Avatar";
 
 interface Saida extends SaidaResumo {
   clienteId: string;
   isca?: string | null;
-  apelido?: string | null;
+  nome?: string | null;
+  icone?: string | null;
   pendente?: boolean;
 }
 
@@ -37,9 +39,10 @@ export function Historico() {
         setCompartilhado(false);
       }
       const ids = new Set(doServidor.map((s) => s.clienteId));
+      const eu = lerPerfil();
       const locais = lerDiario()
         .filter((s) => !ids.has(s.clienteId))
-        .map((s) => ({ ...s, pendente: true }));
+        .map((s) => ({ ...s, nome: eu?.nome, icone: eu?.icone, pendente: true }));
       setSaidas([...locais, ...doServidor].sort((a, b) => `${b.data}${b.inicio}`.localeCompare(`${a.data}${a.inicio}`)));
       fetch("/api/locais")
         .then((r) => r.json())
@@ -54,7 +57,7 @@ export function Historico() {
   const nomeLocal = (id: string) => nomes[id] ?? id;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:gap-8">
       <section aria-labelledby="titulo-cpue" className="min-w-0">
         <h2 id="titulo-cpue" className="rotulo mb-2">
           Peixes por hora
@@ -102,11 +105,12 @@ export function Historico() {
           </p>
         )}
         {saidas.length ? (
-          <ul className="grid gap-2">
+          <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
             {saidas.map((s) => {
               const total = s.capturas.reduce((a, c) => a + c.quantidade, 0);
               return (
                 <li key={s.clienteId} className="painel flex items-center gap-3 p-3.5">
+                  {s.icone && <Avatar icone={s.icone} tam={44} />}
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold">
                       {diaMes(s.data)} · {nomeEspecie(s.especieAlvo)}
@@ -114,8 +118,8 @@ export function Historico() {
                     <span className="block truncate text-xs text-pedra">
                       {nomeLocal(s.localId)} · {s.inicio}–{s.fim} ({fmt(horasDaSaida(s.inicio, s.fim))} h)
                     </span>
-                    {(s.isca || s.apelido) && (
-                      <span className="block truncate text-xs text-pedra">{[s.apelido, s.isca && `isca: ${s.isca}`].filter(Boolean).join(" · ")}</span>
+                    {(s.isca || s.nome) && (
+                      <span className="block truncate text-xs text-pedra">{[s.nome, s.isca && `isca: ${s.isca}`].filter(Boolean).join(" · ")}</span>
                     )}
                     {s.capturas.length > 0 && (
                       <span className="mt-1 block text-xs">{s.capturas.map((c) => `${c.quantidade} ${nomeEspecie(c.especie)}`).join(", ")}</span>

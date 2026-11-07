@@ -1,15 +1,17 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronDown, TriangleAlert } from "lucide-react";
 import { PIRACEMA } from "@/config/indice";
 import { piracemaAtiva } from "@/lib/formato";
 
 export function FaixaPiracema() {
+  const rota = usePathname();
   const [ativa, setAtiva] = useState(false);
   // A data precisa ser a do aparelho hoje, não a do dia em que o site foi publicado.
   useEffect(() => setAtiva(piracemaAtiva()), []);
-  if (!ativa) return null;
+  if (!ativa || rota === "/entrar") return null;
 
   return (
     <details className="border-b border-boia/50 bg-sangue text-osso">

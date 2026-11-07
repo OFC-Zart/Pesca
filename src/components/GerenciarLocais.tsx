@@ -61,7 +61,7 @@ export function GerenciarLocais() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2 lg:gap-8">
       <section aria-labelledby="titulo-lista" className="min-w-0">
         <h2 id="titulo-lista" className="rotulo mb-2">
           Pontos de pesca

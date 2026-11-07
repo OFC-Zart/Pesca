@@ -1,31 +1,33 @@
 import { NextResponse } from "next/server";
-import { COOKIE_ACESSO, COOKIE_DURACAO_SEG, tokenDoCodigo } from "@/lib/acesso";
+import { getDb } from "@/lib/db";
+import { buscarUsuarioPorLogin } from "@/lib/db/consultas";
+import { esquemaEntrar } from "@/lib/esquemas";
+import { conferirSenha, gerarHashSenha } from "@/lib/senha";
+import { iniciarSessao } from "@/lib/sessao";
 
 const ESPERA_ERRO_MS = 600;
+const ERRO = "Usuário ou senha errados.";
+
+async function recusar() {
+  // Atraso pequeno: atrapalha quem tenta adivinhar e ninguém da turma percebe.
+  await new Promise((r) => setTimeout(r, ESPERA_ERRO_MS));
+  return NextResponse.json({ erro: ERRO }, { status: 401 });
+}
 
 export async function POST(req: Request) {
-  const certo = process.env.CODIGO_ACESSO;
-  if (!certo) {
-    return NextResponse.json({ erro: "O código de acesso ainda não foi definido na Vercel." }, { status: 503 });
+  if (!getDb()) {
+    return NextResponse.json({ erro: "O banco de dados ainda não foi ligado na Vercel." }, { status: 503 });
   }
+  const parsed = esquemaEntrar.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return recusar();
 
-  const corpo = await req.json().catch(() => null);
-  const digitado = typeof corpo?.codigo === "string" ? corpo.codigo : "";
-  const token = await tokenDoCodigo(certo);
-
-  if (!digitado.trim() || (await tokenDoCodigo(digitado)) !== token) {
-    // Atraso pequeno: atrapalha quem tenta adivinhar e ninguém da turma percebe.
-    await new Promise((r) => setTimeout(r, ESPERA_ERRO_MS));
-    return NextResponse.json({ erro: "Código errado. Confira com a turma." }, { status: 401 });
+  const usuario = await buscarUsuarioPorLogin(parsed.data.usuario);
+  if (!usuario) {
+    // Mesmo trabalho de uma senha errada: a demora não revela quais usuários existem.
+    await gerarHashSenha(parsed.data.senha);
+    return recusar();
   }
+  if (!(await conferirSenha(parsed.data.senha, usuario.senhaHash))) return recusar();
 
-  const resposta = NextResponse.json({ ok: true });
-  resposta.cookies.set(COOKIE_ACESSO, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: COOKIE_DURACAO_SEG,
-  });
-  return resposta;
+  return iniciarSessao(NextResponse.json({ ok: true }), usuario.id);
 }

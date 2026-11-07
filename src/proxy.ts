@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { COOKIE_ACESSO, tokenDoCodigo } from "@/lib/acesso";
+import { COOKIE_SESSAO, lerTokenSessao } from "@/lib/sessao";
 
-/** O que precisa abrir sem código: a própria entrada, o cron (tem segredo próprio) e a arte da tela de entrada. */
+/** O que precisa abrir sem login: a entrada, o cadastro, o cron (tem segredo próprio) e a arte dessas telas. */
 const ABERTAS = new Set([
   "/entrar",
   "/api/entrar",
+  "/api/cadastro",
   "/api/cron/previsoes",
   "/manifest.webmanifest",
   "/sw.js",
@@ -14,23 +15,21 @@ const ABERTAS = new Set([
   "/logo-simbolo.png",
 ]);
 
-const ehAberta = (caminho: string) => ABERTAS.has(caminho) || caminho.startsWith("/icons/");
+const ehAberta = (caminho: string) => ABERTAS.has(caminho) || caminho.startsWith("/icons/") || caminho.startsWith("/peixes/");
 
 export async function proxy(req: NextRequest) {
   const caminho = req.nextUrl.pathname;
-  const codigo = process.env.CODIGO_ACESSO;
 
-  // Sem código definido, só o ambiente de desenvolvimento fica aberto. Em produção, o site fica trancado.
-  if (!codigo && process.env.NODE_ENV !== "production") return NextResponse.next();
+  // Sem banco não há contas: só o ambiente de desenvolvimento fica aberto. Em produção, o site fica trancado.
+  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== "production") return NextResponse.next();
 
-  const cookie = req.cookies.get(COOKIE_ACESSO)?.value;
-  const liberado = Boolean(codigo && cookie && cookie === (await tokenDoCodigo(codigo)));
+  const logado = Boolean(await lerTokenSessao(req.cookies.get(COOKIE_SESSAO)?.value));
 
-  if (caminho === "/entrar" && liberado) return NextResponse.redirect(new URL("/", req.url));
-  if (liberado || ehAberta(caminho)) return NextResponse.next();
+  if (caminho === "/entrar" && logado) return NextResponse.redirect(new URL("/", req.url));
+  if (logado || ehAberta(caminho)) return NextResponse.next();
 
   if (caminho.startsWith("/api/")) {
-    return NextResponse.json({ erro: "Precisa do código de acesso." }, { status: 401 });
+    return NextResponse.json({ erro: "Entre com seu usuário e senha." }, { status: 401 });
   }
   return NextResponse.redirect(new URL("/entrar", req.url));
 }

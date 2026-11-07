@@ -6,6 +6,7 @@ import { esquemaSaida } from "@/lib/esquemas";
 import { calcularAstro } from "@/lib/indice/astro";
 import { agruparDias, calcularBrutos, calcularFatores, diasDaMedia, mediaAr, somarNota } from "@/lib/indice/calculo";
 import { buscarClima } from "@/lib/openmeteo";
+import { sessaoDaRequisicao } from "@/lib/sessao";
 
 export async function GET() {
   try {
@@ -52,7 +53,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const r = await gravarSaida(saida, snapshot);
+    const sessao = await sessaoDaRequisicao(req);
+    const r = await gravarSaida(saida, snapshot, sessao?.uid ?? null);
     return NextResponse.json({ ok: true, ...r }, { status: r.duplicada ? 200 : 201 });
   } catch (err) {
     console.error("Falha ao gravar a saída:", err);

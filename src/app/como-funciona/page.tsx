@@ -44,7 +44,7 @@ export default function Pagina() {
       <Image src="/logo-completo.png" alt={SITE.nome} width={555} height={494} unoptimized className="mx-auto mb-6 h-auto w-56 sm:w-64" />
       <TituloPagina titulo="A lua não pesca por você" sub={`${SITE.nome} vem de ${SITE.significado}. A nota sai de estudos com pescadores de verdade, não de tabela solunar.`} />
 
-      <div className="grid gap-8 lg:grid-cols-2 lg:gap-x-10">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-2 lg:gap-x-10">
         <Bloco titulo="A conta">
           <p>Cada fator vira uma nota de 0 a 1 e entra com o seu peso. A soma, vezes 100, é a nota do dia.</p>
           <ul className="painel divide-y divide-osso/8">
@@ -66,7 +66,7 @@ export default function Pagina() {
           </ul>
         </Bloco>
 
-        <div className="grid content-start gap-8">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8">
           <Bloco titulo="Por hora">
             <p>
               A nota de cada hora é a do dia ajustada pela janela: o melhor momento vale a nota cheia, o pior perde 21%. A janela depende do peixe.
@@ -130,7 +130,7 @@ export default function Pagina() {
           <p className="text-sm text-pedra">Os períodos e os efeitos de chuva e céu limpo são estimativas pelo hábito de cada peixe, e serão os primeiros números a ajustar com os registros.</p>
         </Bloco>
 
-        <div className="grid content-start gap-8">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-8">
           <Bloco titulo="Até onde confiar">
             <p>
               O tempo erra mais quanto mais longe. Nos 3 primeiros dias há nota e hora a hora; do 4º ao 7º, nota em faixa; depois disso, só tendência, com lua e média da água.
@@ -144,7 +144,7 @@ export default function Pagina() {
                 <li key={f}>{f}</li>
               ))}
             </ul>
-            <p className="text-sm text-pedra">Clima: Open-Meteo. Sol e lua: SunCalc.</p>
+            <p className="text-sm text-pedra">Clima: Open-Meteo. Sol e lua: SunCalc. Fotinhas de peixe: ilustrações em domínio público (CC0) do FreeSVG.</p>
           </Bloco>
         </div>
       </div>

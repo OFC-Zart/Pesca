@@ -8,6 +8,13 @@
       "when": 1794012813101,
       "tag": "0000_groovy_bloodstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794016096829,
+      "tag": "0001_dry_oracle",
+      "breakpoints": true
     }
   ]
 }

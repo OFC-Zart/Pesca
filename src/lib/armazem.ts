@@ -26,8 +26,6 @@ export const prefs = {
   setEspecie: (v: string) => gravar("idfish:especie", v),
   local: () => ler<string>("idfish:local"),
   setLocal: (v: string) => gravar("idfish:local", v),
-  apelido: () => ler<string>("idfish:apelido"),
-  setApelido: (v: string) => gravar("idfish:apelido", v),
 };
 
 export const lerPrevisao = (local: string) => ler<Previsao>(`idfish:previsao:${local}`);
@@ -77,5 +75,29 @@ export async function enviarPendentes() {
     const { enviada: _ignorado, ...dados } = s;
     if ((await enviar(dados)) === "ok") salvarNoDiario({ ...s, enviada: true });
     else break;
+  }
+}
+
+const CHAVE_PERFIL = "idfish:perfil";
+export const EVENTO_PERFIL = "idfish:perfil-mudou";
+
+export interface PerfilLocal {
+  usuario: string;
+  nome: string;
+  icone: string;
+}
+
+export const lerPerfil = () => ler<PerfilLocal>(CHAVE_PERFIL);
+
+export function gravarPerfil(p: PerfilLocal) {
+  gravar(CHAVE_PERFIL, p);
+  window.dispatchEvent(new Event(EVENTO_PERFIL));
+}
+
+export function esquecerPerfil() {
+  try {
+    localStorage.removeItem(CHAVE_PERFIL);
+  } catch {
+    /* segue sem apagar */
   }
 }

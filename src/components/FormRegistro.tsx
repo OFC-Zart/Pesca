@@ -24,7 +24,6 @@ export function FormRegistro() {
   const [localId, setLocalId] = useState<string>(LOCAIS_PADRAO[0].id);
   const [especieAlvo, setEspecieAlvo] = useState<string>(ESPECIE_IDS[0]);
   const [isca, setIsca] = useState("");
-  const [apelido, setApelido] = useState("");
   const [tempAgua, setTempAgua] = useState("");
   const [capturas, setCapturas] = useState<Record<string, number>>({});
   const [erro, setErro] = useState<string | null>(null);
@@ -36,7 +35,6 @@ export function FormRegistro() {
     setData(a.data);
     setFim(a.horaTexto);
     setInicio(`${String(Math.max(0, a.hora - 2)).padStart(2, "0")}:${String(a.minuto).padStart(2, "0")}`);
-    setApelido(prefs.apelido() ?? "");
     const salvo = prefs.local();
     if (salvo) setLocalId(salvo);
     const e = prefs.especie();
@@ -64,7 +62,6 @@ export function FormRegistro() {
       localId,
       especieAlvo,
       isca: isca.trim() || undefined,
-      apelido: apelido.trim() || undefined,
       tempAgua: temp,
       capturas: Object.entries(capturas)
         .filter(([, q]) => q > 0)
@@ -76,7 +73,6 @@ export function FormRegistro() {
       return;
     }
     setEnviando(true);
-    prefs.setApelido(apelido.trim());
     setResultado(await registrarSaida(parsed.data));
     setEnviando(false);
   }
@@ -111,7 +107,7 @@ export function FormRegistro() {
   }
 
   return (
-    <form onSubmit={enviar} className="mx-auto grid max-w-3xl gap-5 lg:grid-cols-2 lg:gap-x-8">
+    <form onSubmit={enviar} className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-2 lg:gap-x-8">
       <fieldset className="grid content-start gap-4">
         <legend className="rotulo mb-3">A saída</legend>
         <label className="grid gap-1 text-sm font-medium">
@@ -155,10 +151,6 @@ export function FormRegistro() {
         <label className="grid gap-1 text-sm font-medium">
           Temperatura da água medida <span className="font-normal text-pedra">(°C, opcional)</span>
           <input inputMode="decimal" value={tempAgua} onChange={(e) => setTempAgua(e.target.value)} placeholder="Só se usou termômetro" className="campo" />
-        </label>
-        <label className="grid gap-1 text-sm font-medium">
-          Apelido <span className="font-normal text-pedra">(opcional, aparece no histórico)</span>
-          <input value={apelido} maxLength={40} onChange={(e) => setApelido(e.target.value)} className="campo" />
         </label>
       </fieldset>
 

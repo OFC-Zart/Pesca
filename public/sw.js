@@ -1,6 +1,6 @@
 // Deixa o site abrir sem sinal na beira do rio.
-const CACHE = "idfish-v3";
-const PAGINAS = ["/", "/registrar", "/historico", "/como-funciona"];
+const CACHE = "idfish-v4";
+const PAGINAS = ["/", "/registrar", "/historico", "/como-funciona", "/perfil"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(guardarTudo().then(() => self.skipWaiting()));
@@ -61,7 +61,7 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/topo.svg" || url.pathname.startsWith("/logo-")) {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/peixes/") || url.pathname === "/topo.svg" || url.pathname.startsWith("/logo-")) {
     e.respondWith(cachePrimeiro(req));
   } else if (req.mode === "navigate" || url.pathname === "/api/locais") {
     e.respondWith(redePrimeiro(req));

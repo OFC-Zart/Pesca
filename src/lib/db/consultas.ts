@@ -4,7 +4,7 @@ import { regressao } from "@/lib/indice/calculo";
 import type { Local } from "@/lib/indice/tipos";
 import type { EntradaSaida } from "@/lib/esquemas";
 import { getDb } from "./index";
-import { capturas, locais, medicoesAgua, previsoes, saidas } from "./schema";
+import { capturas, locais, medicoesAgua, previsoes, saidas, usuarios } from "./schema";
 
 const PADRAO: Local[] = LOCAIS_PADRAO.map((l) => ({ ...l }));
 
@@ -28,7 +28,7 @@ export async function criarLocal(l: Omit<Local, "calibA" | "calibB" | "calibN">)
   await db.insert(locais).values(l);
 }
 
-export async function gravarSaida(s: EntradaSaida, snapshot: { nota: number | null; fatores: unknown; mediaAr: number | null }) {
+export async function gravarSaida(s: EntradaSaida, snapshot: { nota: number | null; fatores: unknown; mediaAr: number | null }, usuarioId: number | null = null) {
   const db = getDb();
   if (!db) throw new Error("Banco não configurado");
 
@@ -42,7 +42,7 @@ export async function gravarSaida(s: EntradaSaida, snapshot: { nota: number | nu
       localId: s.localId,
       especieAlvo: s.especieAlvo,
       isca: s.isca || null,
-      apelido: s.apelido || null,
+      usuarioId,
       nota: snapshot.nota,
       fatores: snapshot.fatores,
     })
@@ -87,16 +87,17 @@ export async function listarSaidas(limite = 200) {
   const db = getDb();
   if (!db) return null;
   const linhas = await db
-    .select()
+    .select({ saida: saidas, nome: usuarios.nome, icone: usuarios.icone })
     .from(saidas)
+    .leftJoin(usuarios, eq(saidas.usuarioId, usuarios.id))
     .orderBy(desc(saidas.data), desc(saidas.inicio))
     .limit(limite);
   if (!linhas.length) return [];
   const caps = await db
     .select()
     .from(capturas)
-    .where(inArray(capturas.saidaId, linhas.map((l) => l.id)));
-  return linhas.map((l) => ({
+    .where(inArray(capturas.saidaId, linhas.map((l) => l.saida.id)));
+  return linhas.map(({ saida: l, nome, icone }) => ({
     clienteId: l.clienteId,
     data: l.data,
     inicio: l.inicio,
@@ -104,7 +105,9 @@ export async function listarSaidas(limite = 200) {
     localId: l.localId,
     especieAlvo: l.especieAlvo,
     isca: l.isca,
-    apelido: l.apelido,
+    // Saídas antigas, de antes das contas, só têm apelido.
+    nome: nome ?? l.apelido,
+    icone,
     nota: l.nota,
     capturas: caps.filter((c) => c.saidaId === l.id).map((c) => ({ especie: c.especie, quantidade: c.quantidade })),
   }));
@@ -121,4 +124,32 @@ export async function limparPrevisoesAntigas(hoje: string): Promise<number> {
     .where(lt(previsoes.criadoEm, corte.toISOString().slice(0, 10)))
     .returning({ id: previsoes.id });
   return apagadas.length;
+}
+
+export async function criarUsuario(dados: { usuario: string; nome: string; icone: string; senhaHash: string }) {
+  const db = getDb();
+  if (!db) throw new Error("Banco não configurado");
+  const [novo] = await db.insert(usuarios).values(dados).onConflictDoNothing({ target: usuarios.usuario }).returning();
+  return novo ?? null;
+}
+
+export async function buscarUsuarioPorLogin(usuario: string) {
+  const db = getDb();
+  if (!db) return null;
+  const [u] = await db.select().from(usuarios).where(eq(usuarios.usuario, usuario));
+  return u ?? null;
+}
+
+export async function buscarUsuarioPorId(id: number) {
+  const db = getDb();
+  if (!db) return null;
+  const [u] = await db.select().from(usuarios).where(eq(usuarios.id, id));
+  return u ?? null;
+}
+
+export async function atualizarPerfil(id: number, dados: { nome: string; icone: string }) {
+  const db = getDb();
+  if (!db) return null;
+  const [u] = await db.update(usuarios).set(dados).where(eq(usuarios.id, id)).returning();
+  return u ?? null;
 }

@@ -12,6 +12,16 @@ export const locais = pgTable("locais", {
   calibN: integer("calib_n"),
 });
 
+export const usuarios = pgTable("usuarios", {
+  id: serial("id").primaryKey(),
+  // Sempre em minúsculas, para "Danilo" e "danilo" serem o mesmo login.
+  usuario: text("usuario").notNull().unique(),
+  nome: text("nome").notNull(),
+  icone: text("icone").notNull(),
+  senhaHash: text("senha_hash").notNull(),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const saidas = pgTable("saidas", {
   id: serial("id").primaryKey(),
   // Gerado no aparelho: evita duplicar uma pescaria enviada de novo quando o sinal volta.
@@ -22,6 +32,7 @@ export const saidas = pgTable("saidas", {
   localId: text("local_id").notNull().references(() => locais.id),
   especieAlvo: text("especie_alvo").notNull(),
   isca: text("isca"),
+  usuarioId: integer("usuario_id").references(() => usuarios.id),
   apelido: text("apelido"),
   nota: integer("nota"),
   fatores: jsonb("fatores"),

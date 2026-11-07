@@ -5,13 +5,15 @@
 ## Publicar na Vercel
 
 1. Importe este repositório na Vercel. Cada push na `main` publica o site.
-2. Em *Settings → Environment Variables*, defina:
-   - `CODIGO_ACESSO`: o código que a turma digita para entrar. Trocar este valor e fazer um novo deploy derruba os acessos antigos.
+2. Em *Storage*, conecte o banco Neon ao projeto. A variável `DATABASE_URL` é criada pela integração, e as tabelas são criadas sozinhas no deploy seguinte.
+3. Em *Settings → Environment Variables*, defina:
+   - `CODIGO_ACESSO`: o código da turma, inventado por você. É pedido só para criar conta; trocar este valor não derruba quem já entrou.
    - `CRON_SECRET`: um texto longo qualquer; protege a gravação diária das previsões.
-3. Em *Storage*, conecte o banco Neon ao projeto. A variável `DATABASE_URL` é criada pela integração, e as tabelas são criadas sozinhas no deploy seguinte.
 4. Faça um novo deploy para as variáveis valerem.
 
-Sem `CODIGO_ACESSO`, o site publicado fica trancado. Sem banco, cada pescaria fica salva só no aparelho de quem registrou.
+## Como a turma entra
+
+Cada pessoa cria uma conta uma vez, com nome, usuário, senha, fotinha de peixe e o código da turma. Depois, entra só com usuário e senha, e o aparelho continua logado por um ano. Sem banco, ninguém consegue entrar no site publicado.
 
 ## Ajustar o índice
 
