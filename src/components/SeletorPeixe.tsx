@@ -17,7 +17,7 @@ export function SeletorPeixe({ valor, onMudar }: { valor: PeixeId; onMudar: (id:
           >
             <input type="radio" name="icone" value={p.id} checked={valor === p.id} onChange={() => onMudar(p.id)} className="sr-only" />
             <Avatar icone={p.id} tam={56} carregarJa />
-            <span className="text-[11px] leading-tight text-osso/85">{p.nome}</span>
+            <span className="text-xs leading-tight text-osso/90">{p.nome}</span>
           </label>
         ))}
       </div>

@@ -18,7 +18,7 @@ export function FaixaPiracema() {
       <summary className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
         <TriangleAlert size={18} className="shrink-0 text-boia-clara" aria-hidden />
         <span className="min-w-0 flex-1 text-sm leading-snug">
-          <strong className="font-semibold">Piracema até 31/01.</strong> Só uma vara ou linha de mão, até 5 kg + 1 exemplar.
+          <strong className="font-bold">Piracema até 31/01:</strong> 1 vara ou linha de mão, 5 kg + 1 exemplar.
         </span>
         <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-boia-clara">
           Regras

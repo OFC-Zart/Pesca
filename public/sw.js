@@ -1,6 +1,6 @@
 // Deixa o site abrir sem sinal na beira do rio.
-const CACHE = "idfish-v4";
-const PAGINAS = ["/", "/registrar", "/historico", "/como-funciona", "/perfil"];
+const CACHE = "idfish-v5";
+const PAGINAS = ["/", "/registrar", "/historico", "/como-funciona", "/perfil", "/locais"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(guardarTudo().then(() => self.skipWaiting()));

@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
 @theme {
-  --color-breu: #0b0f0a;
-  --color-mata: #11170f;
-  --color-sombra: #182015;
-  --color-folha: #232e1d;
+  /* Mata: preto suave e verdes. Letra fina em preto puro é a pior leitura ao sol. */
+  --color-breu: #0f140e;
+  --color-mata: #151c13;
+  --color-sombra: #1c2519;
+  --color-folha: #2a3722;
   --color-musgo: #6c9630;
   --color-broto: #a9cb54;
   --color-brotinho: #c9e96b;
-  --color-osso: #ece9dc;
-  --color-pedra: #a7ab9b;
-  --color-cinza: #6f7468;
-  --color-terra: #2c2015;
+
+  /* Pedra e osso */
+  --color-osso: #f3f0e4;
+  --color-pedra: #c2c6b6;
+  --color-cinza: #80857a;
+
+  /* Barranco */
+  --color-terra: #322417;
   --color-casca: #6b4a2c;
-  --color-barro: #b08a5b;
+  --color-barro: #d0a26b;
+
+  /* Boia */
   --color-boia: #de4331;
-  --color-boia-clara: #f26a56;
+  --color-boia-clara: #ff7d66;
   --color-sangue: #4d130e;
+
+  /* Rio e entardecer */
+  --color-rio: #1e7a80;
+  --color-rio-claro: #62d6d3;
+  --color-rio-fundo: #0e3b3f;
+  --color-ambar: #f2a93b;
+  --color-sol: #ffd166;
 
   --font-display: var(--fonte-display);
   --font-sans: var(--fonte-corpo);
   --font-mono: var(--fonte-mono);
+
+  /* Letra pequena maior: o site é lido no celular, na beira do rio. */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.4;
 }
 
 html {
@@ -32,19 +52,21 @@ body {
   background-color: var(--color-breu);
   color: var(--color-osso);
   font-family: var(--font-sans);
+  font-weight: 450;
   min-height: 100dvh;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Curvas de nível, como um mapa de campo, por trás de tudo. */
+/* Fundo: curvas de nível e o reflexo do rio e do entardecer nos cantos. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(120% 70% at 85% -5%, rgb(95 127 58 / 0.22), transparent 60%),
-    radial-gradient(90% 60% at 0% 100%, rgb(107 74 44 / 0.2), transparent 65%);
+    radial-gradient(90% 55% at 100% 0%, rgb(30 122 128 / 0.24), transparent 65%),
+    radial-gradient(80% 50% at 0% 28%, rgb(108 150 48 / 0.15), transparent 65%),
+    radial-gradient(90% 55% at 12% 100%, rgb(242 169 59 / 0.1), transparent 65%);
 }
 body::after {
   content: "";
@@ -52,7 +74,7 @@ body::after {
   inset: 0;
   z-index: -1;
   background: url("/topo.svg") center / 1200px;
-  opacity: 0.09;
+  opacity: 0.07;
 }
 
 :focus-visible {
@@ -63,17 +85,62 @@ body::after {
 
 .rotulo {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--color-pedra);
 }
 
 .painel {
-  background: rgb(24 32 21 / 0.86);
-  border: 1px solid rgb(236 233 220 / 0.09);
+  background: var(--color-sombra);
+  border: 1px solid rgb(243 240 228 / 0.1);
+  border-radius: 16px;
+}
+.painel-acento {
+  position: relative;
+  overflow: hidden;
+}
+.painel-acento::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--acento, var(--color-broto)), transparent 85%);
+}
+
+.ficha {
   border-radius: 14px;
-  backdrop-filter: blur(6px);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--acento) 15%, var(--color-sombra)), var(--color-sombra) 70%);
+  border: 1px solid color-mix(in srgb, var(--acento) 26%, transparent);
+}
+
+.icone-chip {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 10px;
+  color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 18%, transparent);
+}
+
+/* A linha de pesca que sai do título da seção e termina numa boia. */
+.linha-pesca {
+  flex: 1;
+  min-width: 16px;
+  height: 0;
+  border-top: 1.5px dashed rgb(243 240 228 / 0.2);
+  position: relative;
+}
+.linha-pesca::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -6px;
+  width: 8px;
+  height: 11px;
+  border-radius: 50% 50% 50% 50% / 42% 42% 58% 58%;
+  background: linear-gradient(var(--color-boia) 0 50%, var(--color-osso) 50% 62%, var(--color-musgo) 62%);
 }
 
 .sem-barra {
@@ -82,68 +149,421 @@ body::after {
 .sem-barra::-webkit-scrollbar {
   display: none;
 }
+.borda-fade {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
+}
 
-/* Cartão da boia: a nota lida como uma pescada. */
+/* ---------- Cartão da nota ---------- */
 .cena {
+  --agua: 92px;
   position: relative;
   overflow: hidden;
-  border-radius: 18px;
-  border: 1px solid rgb(236 233 220 / 0.1);
-  background: linear-gradient(180deg, #1c2618 0%, #141b11 62%);
+  border-radius: 20px;
+  border: 1px solid rgb(243 240 228 / 0.12);
+  background:
+    radial-gradient(110% 80% at 0% 0%, color-mix(in srgb, var(--acento, #a9cb54) 20%, transparent), transparent 62%),
+    var(--color-sombra);
   isolation: isolate;
 }
-.agua {
+
+/* ---------- Cenário do rio ---------- */
+.rio {
+  position: relative;
+  height: 190px;
+  overflow: hidden;
+  container-type: inline-size;
+  isolation: isolate;
+}
+.rio[data-momento="dia"] {
+  --ceu-1: #3a8cc2;
+  --ceu-2: #8fd0e4;
+  --ceu-3: #e6f2d2;
+  --serra-longe: #5f9383;
+  --serra-perto: #2f6249;
+  --serra-arvore: #1d4630;
+  --agua-1: rgb(38 146 146 / 0.82);
+  --agua-2: rgb(9 56 60 / 0.97);
+  --nuvem: rgb(255 255 255 / 0.9);
+  --reflexo: rgb(255 240 180 / 0.45);
+}
+.rio[data-momento="amanhecer"] {
+  --ceu-1: #2c4079;
+  --ceu-2: #d67f6c;
+  --ceu-3: #ffd59c;
+  --serra-longe: #62607f;
+  --serra-perto: #36494f;
+  --serra-arvore: #1f3336;
+  --agua-1: rgb(66 124 138 / 0.84);
+  --agua-2: rgb(12 48 58 / 0.97);
+  --nuvem: rgb(255 214 190 / 0.8);
+  --reflexo: rgb(255 190 130 / 0.55);
+}
+.rio[data-momento="entardecer"] {
+  --ceu-1: #3b2a6b;
+  --ceu-2: #d3553f;
+  --ceu-3: #ffb24b;
+  --serra-longe: #5d3f62;
+  --serra-perto: #30293a;
+  --serra-arvore: #1b1c26;
+  --agua-1: rgb(112 88 92 / 0.86);
+  --agua-2: rgb(18 36 48 / 0.97);
+  --nuvem: rgb(255 180 150 / 0.75);
+  --reflexo: rgb(255 170 90 / 0.6);
+}
+.rio[data-momento="noite"] {
+  --ceu-1: #08142b;
+  --ceu-2: #12294a;
+  --ceu-3: #1d4160;
+  --serra-longe: #173149;
+  --serra-perto: #0f2233;
+  --serra-arvore: #0a1826;
+  --agua-1: rgb(14 66 86 / 0.86);
+  --agua-2: rgb(4 22 34 / 0.98);
+  --nuvem: rgb(150 170 195 / 0.45);
+  --reflexo: rgb(190 215 240 / 0.35);
+}
+
+.rio-ceu {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, var(--ceu-1), var(--ceu-2) 42%, var(--ceu-3) 62%);
+}
+.rio[data-chuva] .rio-ceu,
+.rio[data-chuva] .rio-serra {
+  filter: saturate(0.4) brightness(0.7);
+}
+.rio[data-chuva] {
+  --nuvem: rgb(205 212 220 / 0.92);
+}
+.rio-serra {
   position: absolute;
   inset-inline: 0;
-  bottom: 0;
-  height: var(--agua, 104px);
-  z-index: 3;
-  background: linear-gradient(180deg, rgb(62 92 44 / 0.78) 0%, rgb(20 34 18 / 0.95) 100%);
-  border-top: 1px solid rgb(201 233 107 / 0.45);
+  bottom: calc(var(--agua) - 4px);
+  height: 62px;
+  width: 100%;
+  z-index: 1;
 }
+
+.astro {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+.sol {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 42% 40%, #fff7c7, #ffd166 62%, #ffb648);
+  box-shadow: 0 0 22px 7px rgb(255 209 102 / 0.55);
+  animation: pulsar 5s ease-in-out infinite;
+}
+.rio[data-momento="entardecer"] .sol,
+.rio[data-momento="amanhecer"] .sol {
+  background: radial-gradient(circle at 42% 40%, #ffe9b0, #ff9d4d 65%, #ee6a3a);
+  box-shadow: 0 0 26px 9px rgb(255 140 70 / 0.55);
+}
+.lua {
+  filter: drop-shadow(0 0 9px rgb(225 235 255 / 0.65));
+}
+@keyframes pulsar {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.08; }
+}
+
+.estrela {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  animation: piscar 3.2s ease-in-out infinite;
+  animation-delay: var(--atraso, 0s);
+}
+@keyframes piscar {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+.nuvem {
+  position: absolute;
+  left: 0;
+  fill: var(--nuvem);
+  animation: atravessar var(--dur, 80s) linear infinite;
+  animation-delay: var(--atraso, 0s);
+}
+@keyframes atravessar {
+  from { transform: translateX(-22cqw); }
+  to { transform: translateX(112cqw); }
+}
+
+.chuva {
+  position: absolute;
+  inset: -40px 0 var(--agua);
+  z-index: 3;
+  background-image: repeating-linear-gradient(105deg, transparent 0 9px, rgb(220 240 255 / 0.34) 9px 10.5px, transparent 10.5px 22px);
+  background-size: 100% 40px;
+  animation: chover 0.7s linear infinite;
+}
+@keyframes chover {
+  from { transform: translateY(0); }
+  to { transform: translateY(40px); }
+}
+
+/* Boia: afunda mais quanto melhor a nota e dá uma fisgada de tempos em tempos. */
 .boia {
   position: absolute;
-  right: 15%;
-  bottom: var(--agua, 104px);
-  z-index: 2;
-  width: 58px;
+  right: 17%;
+  bottom: var(--agua);
+  z-index: 3;
+  width: 44px;
   transform-origin: 50% 100%;
-  transform: translateY(var(--mergulho, 20px)) rotate(var(--inclina, 4deg));
   animation: balanco var(--ritmo, 4s) ease-in-out infinite;
 }
+.boia-corpo {
+  display: block;
+  transform-origin: 50% 100%;
+  animation: fisgada var(--ciclo-fisgada, 9s) ease-in-out infinite;
+}
+@keyframes balanco {
+  0%, 100% { transform: translateY(var(--mergulho, 14px)) rotate(var(--inclina, 4deg)); }
+  50% { transform: translateY(calc(var(--mergulho, 14px) + var(--amplitude, 4px))) rotate(calc(var(--inclina, 4deg) * -0.6)); }
+}
+@keyframes fisgada {
+  0%, 74%, 92%, 100% { transform: translateY(0) rotate(0); }
+  78% { transform: translateY(15px) rotate(-7deg); }
+  81% { transform: translateY(3px) rotate(4deg); }
+  84% { transform: translateY(19px) rotate(-9deg); }
+  88% { transform: translateY(1px) rotate(2deg); }
+}
+
 .onda {
   position: absolute;
-  right: calc(15% + 29px);
-  bottom: calc(var(--agua, 104px) - 9px);
-  z-index: 4;
-  width: 40px;
-  height: 18px;
-  margin-right: -20px;
+  right: calc(17% + 22px);
+  bottom: calc(var(--agua) - 6px);
+  z-index: 5;
+  width: 34px;
+  height: 12px;
+  margin-right: -17px;
   border-radius: 50%;
-  border: 1.5px solid rgb(201 233 107 / 0.75);
+  border: 1.5px solid rgb(225 250 245 / 0.85);
   opacity: 0;
   animation: onda var(--ritmo, 4s) ease-out infinite;
   animation-delay: var(--atraso, 0s);
+}
+@keyframes onda {
+  0% { transform: scale(0.7); opacity: 0.9; }
+  100% { transform: scale(4.2); opacity: 0; }
+}
+
+/* Água em camadas: as ondas correm uma contra a outra. */
+.rio-agua {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: var(--agua);
+  z-index: 4;
+  overflow: hidden;
+  container-type: inline-size;
+  background: linear-gradient(180deg, var(--agua-1), var(--agua-2) 88%);
+}
+.rio-onda {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 200%;
+  height: 14px;
+  animation: correr 9s linear infinite;
+}
+.rio-onda.volta {
+  top: 4px;
+  animation-duration: 14s;
+  animation-direction: reverse;
+  opacity: 0.55;
+}
+@keyframes correr {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.reflexo {
+  position: absolute;
+  top: 0;
+  width: 58px;
+  height: 58px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, var(--reflexo), transparent);
+  filter: blur(5px);
+  animation: tremular 3.5s ease-in-out infinite;
+}
+@keyframes tremular {
+  0%, 100% { scale: 1 1; opacity: 0.8; }
+  50% { scale: 1.3 0.92; opacity: 1; }
+}
+
+.nadador {
+  position: absolute;
+  left: 0;
+  animation: nadar var(--dur, 22s) linear infinite;
+  animation-delay: var(--atraso, 0s);
+}
+.nadador.volta {
+  animation-direction: reverse;
+}
+@keyframes nadar {
+  from { transform: translateX(-14cqw) scaleX(var(--sentido, 1)); }
+  to { transform: translateX(110cqw) scaleX(var(--sentido, 1)); }
+}
+.bolha {
+  position: absolute;
+  bottom: -6px;
+  width: var(--tam, 5px);
+  height: var(--tam, 5px);
+  border-radius: 50%;
+  border: 1px solid rgb(225 250 245 / 0.7);
+  animation: subir var(--dur, 5s) ease-in infinite;
+  animation-delay: var(--atraso, 0s);
+}
+@keyframes subir {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: 0.9; }
+  100% { transform: translate(6px, -96px); opacity: 0; }
+}
+
+.placar {
+  position: absolute;
+  left: 14px;
+  bottom: 10px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .peixe {
   animation: nado 3.4s ease-in-out infinite;
   animation-delay: var(--atraso, 0s);
 }
-
-@keyframes balanco {
-  0%, 100% { transform: translateY(var(--mergulho, 20px)) rotate(var(--inclina, 4deg)); }
-  50% { transform: translateY(calc(var(--mergulho, 20px) + var(--amplitude, 5px))) rotate(calc(var(--inclina, 4deg) * -0.5)); }
-}
-@keyframes onda {
-  0% { transform: scale(0.7); opacity: 0.85; }
-  100% { transform: scale(5); opacity: 0; }
-}
 @keyframes nado {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(3px); }
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  30% { transform: translateX(2px) rotate(-5deg); }
+  65% { transform: translateX(-1px) rotate(4deg); }
 }
 
-/* Capim do gráfico por hora. */
+/* Peixe que pula quando o dia é bom. */
+.salto {
+  position: absolute;
+  left: 30%;
+  bottom: calc(var(--agua) - 8px);
+  z-index: 3;
+  opacity: 0;
+  animation: saltar var(--ciclo, 12s) ease-in-out infinite;
+}
+@keyframes saltar {
+  0%, 74% { transform: translate(0, 12px) rotate(50deg); opacity: 0; }
+  75% { transform: translate(0, 12px) rotate(50deg); opacity: 1; }
+  82% { transform: translate(22px, -36px) rotate(0deg); opacity: 1; }
+  89% { transform: translate(44px, 12px) rotate(-55deg); opacity: 1; }
+  90%, 100% { transform: translate(44px, 12px) rotate(-55deg); opacity: 0; }
+}
+.respingo {
+  position: absolute;
+  left: calc(30% + 44px);
+  bottom: calc(var(--agua) - 6px);
+  z-index: 5;
+  width: 30px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(240 255 250 / 0.9);
+  opacity: 0;
+  animation: respingar var(--ciclo, 12s) ease-out infinite;
+}
+@keyframes respingar {
+  0%, 88% { transform: scale(0.4); opacity: 0; }
+  89% { transform: scale(0.4); opacity: 1; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+/* Taboas e aguapés na margem. */
+.taboa {
+  position: absolute;
+  bottom: calc(var(--agua) - 16px);
+  z-index: 6;
+  transform-origin: 50% 100%;
+  animation: brisa 5s ease-in-out infinite;
+}
+.aguape {
+  position: absolute;
+  top: -3px;
+  animation: boiar 4.5s ease-in-out infinite;
+  animation-delay: var(--atraso, 0s);
+}
+@keyframes boiar {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(2.5px) rotate(2deg); }
+}
+
+.libelula {
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  top: 34%;
+  animation: voar 17s ease-in-out infinite;
+}
+.libelula .asa {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: bater 0.14s linear infinite alternate;
+}
+@keyframes bater {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.55); }
+}
+@keyframes voar {
+  0% { transform: translate(8cqw, 8px); }
+  18% { transform: translate(26cqw, -6px); }
+  30% { transform: translate(26cqw, -6px); }
+  50% { transform: translate(52cqw, 14px); }
+  62% { transform: translate(52cqw, 14px); }
+  82% { transform: translate(30cqw, -8px) scaleX(-1); }
+  100% { transform: translate(8cqw, 8px) scaleX(-1); }
+}
+
+.vagalume {
+  position: absolute;
+  z-index: 6;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #eaff8a;
+  box-shadow: 0 0 8px 3px rgb(220 255 120 / 0.7);
+  animation: vagar var(--dur, 7s) ease-in-out infinite;
+  animation-delay: var(--atraso, 0s);
+}
+@keyframes vagar {
+  0%, 100% { transform: translate(0, 0); opacity: 0.15; }
+  30% { transform: translate(10px, -9px); opacity: 1; }
+  60% { transform: translate(-7px, -15px); opacity: 0.35; }
+  80% { transform: translate(5px, -4px); opacity: 0.9; }
+}
+
+/* ---------- Gráfico de capim ---------- */
+.capim {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  isolation: isolate;
+}
+.capim-ceu {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.38;
+}
+.capim-ceu::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 30%, var(--color-sombra) 100%);
+}
 .lamina {
   transform-box: fill-box;
   transform-origin: 50% 100%;
@@ -151,17 +571,100 @@ body::after {
   animation-delay: var(--atraso, 0s);
   transition: fill 0.15s, opacity 0.15s;
 }
+.lamina-cresce {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: crescer 0.65s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: var(--atraso-cresce, 0s);
+}
 @keyframes brisa {
   0%, 100% { transform: skewX(0deg); }
-  50% { transform: skewX(-2.2deg); }
+  50% { transform: skewX(-2.4deg); }
+}
+@keyframes crescer {
+  from { transform: scaleY(0.12); }
+  to { transform: scaleY(1); }
 }
 
+/* ---------- Movimentos de entrada ---------- */
 @keyframes aparece {
-  from { transform: translateY(8px); }
+  from { transform: translateY(10px); }
   to { transform: none; }
 }
 .aparece {
-  animation: aparece 0.35s ease-out both;
+  animation: aparece 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.barra {
+  transform-origin: 0 50%;
+  animation: barra 0.75s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+@keyframes barra {
+  from { transform: scaleX(0.04); }
+  to { transform: scaleX(1); }
+}
+.pulo {
+  animation: pulo 0.32s cubic-bezier(0.3, 1.7, 0.5, 1);
+}
+@keyframes pulo {
+  0% { transform: scale(0.7); }
+  100% { transform: scale(1); }
+}
+
+/* Os blocos surgem ao rolar a página. Onde não há suporte, ficam normais. */
+@supports (animation-timeline: view()) {
+  .revelar {
+    animation: surgir linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 32%;
+  }
+  @keyframes surgir {
+    from { opacity: 0.3; transform: translateY(16px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+/* ---------- Navegação ---------- */
+.fab-boia {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-top: -24px;
+  border-radius: 50%;
+  color: #fff;
+  background: radial-gradient(circle at 38% 30%, #ff7d66, var(--color-boia) 58%, #b42c1d);
+  border: 3px solid var(--color-osso);
+  box-shadow: 0 6px 18px rgb(222 67 49 / 0.5);
+  animation: flutuar 3.6s ease-in-out infinite;
+}
+@keyframes flutuar {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-3px) rotate(2deg); }
+}
+
+/* ---------- Margem do rio no pé da página ---------- */
+.margem {
+  --serra-longe: #2b5546;
+  --serra-perto: #1b3d2c;
+  --serra-arvore: #122c20;
+  position: relative;
+  margin-top: 28px;
+  overflow: hidden;
+}
+.margem-serra {
+  display: block;
+  width: 100%;
+  height: 64px;
+}
+.margem-agua {
+  position: relative;
+  background: linear-gradient(180deg, #17666b, #0b2c30);
+  overflow: hidden;
+}
+.margem .rio-onda {
+  top: -1px;
 }
 
 details > summary {
@@ -182,21 +685,27 @@ input, select, textarea {
   width: 100%;
   min-height: 48px;
   padding: 0.625rem 0.875rem;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--color-mata);
-  border: 1px solid rgb(236 233 220 / 0.16);
+  border: 1px solid rgb(243 240 228 / 0.2);
   color: var(--color-osso);
+}
+.campo::placeholder {
+  color: var(--color-cinza);
 }
 .campo:focus {
   outline: none;
-  border-color: var(--color-broto);
+  border-color: var(--color-rio-claro);
+  box-shadow: 0 0 0 3px rgb(98 214 211 / 0.2);
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
     transition-duration: 0.001ms !important;
   }
   .onda { opacity: 0.4; }
+  .estrela { opacity: 0.7; }
 }

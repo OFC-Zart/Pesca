@@ -1,23 +1,35 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
-import { ChevronDown, Sunrise, Sunset } from "lucide-react";
+import { ChevronDown, Clock, Sun, Sunrise, Sunset } from "lucide-react";
+import { ESPECIES, LEGENDA_PERIODO, type EspecieId } from "@/config/indice";
 import { COR_NOTA, horaTexto } from "@/lib/formato";
 import { escala, melhorHora } from "@/lib/indice/calculo";
 import type { Astro } from "@/lib/indice/tipos";
+import { IconeLua } from "./IconeLua";
+import { TituloSecao } from "./TituloSecao";
 
 const L = 480;
 const A = 150;
 const LARG = L / 24;
+const altura = (nota: number) => Math.max(6, (nota / 100) * (A - 10));
 
 /** Cada hora é uma folha de capim: a altura é a nota (eixo fixo de 0 a 100). */
 function folha(i: number, nota: number) {
   const x = (i + 0.5) * LARG;
-  const h = Math.max(6, (nota / 100) * (A - 10));
+  const h = altura(nota);
   // Curvatura fixa por posição: dá cara de capinzal sem mudar a leitura da altura.
   const dobra = ((i * 7) % 5) - 2;
-  const b = LARG * 0.34;
+  const b = LARG * 0.36;
   return `M${x - b} ${A}C${x - b} ${A - h * 0.5} ${x + dobra * 0.4 - 1.5} ${A - h * 0.85} ${x + dobra} ${A - h}C${x + dobra * 0.3 + 2} ${A - h * 0.8} ${x + b} ${A - h * 0.45} ${x + b} ${A}Z`;
+}
+
+/** O céu atrás do capim: noite, amanhecer, dia, entardecer, nas horas reais do sol. */
+function ceuDoDia(a: Astro): string {
+  const nascer = a.nascerSol ?? 6;
+  const por = a.porSol ?? 18;
+  const p = (h: number) => `${((h / 24) * 100).toFixed(1)}%`;
+  return `linear-gradient(90deg, #14233f 0%, #14233f ${p(nascer - 1.2)}, #e58a5f ${p(nascer)}, #6fbfdf ${p(nascer + 1.6)}, #6fbfdf ${p(por - 1.6)}, #f2964e ${p(por)}, #14233f ${p(por + 1.2)}, #14233f 100%)`;
 }
 
 export function CapimHoras(p: {
@@ -26,13 +38,14 @@ export function CapimHoras(p: {
   /** Hora atual quando o dia mostrado é hoje. */
   horaAgora: number | null;
   inseguras: number[];
+  especie: EspecieId;
 }) {
-  const { horas, astro, horaAgora, inseguras } = p;
+  const { horas, astro, horaAgora, inseguras, especie } = p;
   const melhor = melhorHora(horas, horaAgora ?? 0);
   const [sel, setSel] = useState<number | null>(null);
   const area = useRef<HTMLDivElement>(null);
 
-  // Ao trocar de dia ou espécie, volta a destacar o melhor horário.
+  // Ao trocar de dia ou espécie, volta a destacar o melhor horário e o capim cresce de novo.
   const assinatura = horas.join();
   useEffect(() => setSel(null), [assinatura]);
 
@@ -51,21 +64,22 @@ export function CapimHoras(p: {
   };
 
   const pos = (h: number) => `${(h / 24) * 100}%`;
+  const meioDia = ((astro.nascerSol ?? 6) + (astro.porSol ?? 18)) / 2;
 
   return (
-    <section className="painel p-4" aria-labelledby="titulo-horas">
-      <div>
-        <h2 id="titulo-horas" className="rotulo">
-          Hora a hora
-        </h2>
-        <p className="mt-1 min-h-6 text-sm" aria-live="polite">
-          <span className="text-pedra">{ativa === melhor && sel === null ? (horaAgora === null ? "Melhor horário · " : "Melhor que resta · ") : ""}</span>
-          <strong className="font-mono font-medium">{String(ativa).padStart(2, "0")}h</strong>
-          <span className="text-pedra"> · nota </span>
-          <strong className="font-mono font-medium">{horas[ativa]}</strong>
-          <span className="text-pedra"> · {nivel.nome}</span>
-        </p>
-      </div>
+    <section className="painel painel-acento revelar p-4" style={{ "--acento": "#f2a93b" } as CSSProperties} aria-labelledby="titulo-horas">
+      <TituloSecao id="titulo-horas" titulo="Hora a hora" Icone={Clock} cor="#f2a93b" />
+      <p className="mt-2 text-sm text-pedra">
+        {ESPECIES[especie].nome}: <span className="font-semibold text-osso">{LEGENDA_PERIODO[ESPECIES[especie].periodo].toLowerCase()}</span>
+      </p>
+
+      <p className="mt-2 flex min-h-11 flex-wrap items-center gap-x-2.5 gap-y-1" aria-live="polite">
+        <strong className="font-display text-[2.5rem] font-black leading-none">{String(ativa).padStart(2, "0")}h</strong>
+        <span className="rounded-lg px-2 py-0.5 text-sm font-bold text-breu" style={{ backgroundColor: COR_NOTA[nivel.nome] }}>
+          {horas[ativa]} · {nivel.nome}
+        </span>
+        <span className="text-xs text-pedra">{sel === null ? (horaAgora === null ? "Melhor horário" : "Melhor que resta") : "Arraste para ver as outras horas"}</span>
+      </p>
 
       <div
         ref={area}
@@ -79,46 +93,60 @@ export function CapimHoras(p: {
         onKeyDown={teclado}
         onPointerDown={moverPara}
         onPointerMove={(e) => (e.buttons || e.pointerType === "mouse") && moverPara(e)}
-        className="mt-3 cursor-crosshair touch-pan-y select-none"
+        className="capim mt-2 cursor-crosshair touch-pan-y select-none"
       >
-        <svg viewBox={`0 0 ${L} ${A}`} className="block h-[150px] w-full sm:h-[180px]" preserveAspectRatio="none" aria-hidden>
-          <rect x={ativa * LARG} y="0" width={LARG} height={A} fill="rgb(236 233 220 / .06)" />
-          {horas.map((nota, i) => {
-            const passou = horaAgora !== null && i < horaAgora;
-            const insegura = inseguras.includes(i);
-            const destaque = i === ativa;
-            const cor = insegura ? "#de4331" : destaque ? "#ece9dc" : i === melhor ? "#c9e96b" : COR_NOTA[escala(nota).nome];
-            return (
-              <path
-                key={i}
-                d={folha(i, nota)}
-                fill={cor}
-                className="lamina"
-                style={{ "--atraso": `${(i % 6) * 0.45}s`, opacity: passou && !destaque ? 0.35 : 1 } as CSSProperties}
-              />
-            );
-          })}
-          {horaAgora !== null && (
-            <circle cx={(horaAgora + 0.5) * LARG} cy={A - Math.max(6, (horas[horaAgora] / 100) * (A - 10)) - 7} r="4.5" fill="#de4331" stroke="#ece9dc" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-          )}
+        <div className="capim-ceu" style={{ backgroundImage: ceuDoDia(astro) }} aria-hidden />
+        <span className="pointer-events-none absolute top-1.5 -translate-x-1/2" style={{ left: pos(meioDia) }} aria-hidden>
+          <Sun size={18} color="#ffd166" />
+        </span>
+        <span className="pointer-events-none absolute left-[5%] top-1.5" aria-hidden>
+          <IconeLua astro={astro} tam={16} />
+        </span>
+        <svg viewBox={`0 0 ${L} ${A}`} className="block h-[160px] w-full sm:h-[190px]" preserveAspectRatio="none" aria-hidden>
+          <rect x={ativa * LARG} y="0" width={LARG} height={A} fill="rgb(243 240 228 / .12)" />
+          <g key={assinatura}>
+            {horas.map((nota, i) => {
+              const passou = horaAgora !== null && i < horaAgora;
+              const insegura = inseguras.includes(i);
+              const destaque = i === ativa;
+              const cor = insegura ? "#ff5c47" : destaque ? "#f3f0e4" : COR_NOTA[escala(nota).nome];
+              return (
+                <g key={i} className="lamina-cresce" style={{ "--atraso-cresce": `${i * 22}ms` } as CSSProperties}>
+                  <path
+                    d={folha(i, nota)}
+                    fill={cor}
+                    className="lamina"
+                    style={{ "--atraso": `${-(i % 6) * 0.45}s`, opacity: passou && !destaque ? 0.38 : 1 } as CSSProperties}
+                  />
+                </g>
+              );
+            })}
+          </g>
         </svg>
+        {horaAgora !== null && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute size-3 -translate-x-1/2 rounded-full border-2 border-osso bg-boia"
+            style={{ left: `${((horaAgora + 0.5) / 24) * 100}%`, bottom: `calc(${(altura(horas[horaAgora]) / A) * 100}% + 3px)` }}
+          />
+        )}
       </div>
 
       {/* O chão: marrom, com o nascer e o pôr do sol marcados. */}
-      <div className="rounded-b-md bg-terra px-0 pb-1.5 pt-1.5">
-        <div className="relative h-5 text-[11px] text-barro">
+      <div className="rounded-b-xl bg-terra pb-1.5 pt-1.5">
+        <div className="relative h-5 text-xs font-medium text-sol">
           {astro.nascerSol !== null && (
             <span className="absolute flex -translate-x-1/2 items-center gap-1 whitespace-nowrap font-mono" style={{ left: pos(astro.nascerSol) }}>
-              <Sunrise size={13} aria-hidden /> {horaTexto(astro.nascerSol)}
+              <Sunrise size={14} aria-hidden /> {horaTexto(astro.nascerSol)}
             </span>
           )}
           {astro.porSol !== null && (
             <span className="absolute flex -translate-x-1/2 items-center gap-1 whitespace-nowrap font-mono" style={{ left: pos(astro.porSol) }}>
-              <Sunset size={13} aria-hidden /> {horaTexto(astro.porSol)}
+              <Sunset size={14} aria-hidden /> {horaTexto(astro.porSol)}
             </span>
           )}
         </div>
-        <div className="relative h-4 font-mono text-[10px] text-pedra/80" aria-hidden>
+        <div className="relative mt-0.5 h-4 font-mono text-xs text-pedra" aria-hidden>
           {[0, 6, 12, 18].map((h) => (
             <span key={h} className="absolute pl-1" style={{ left: pos(h) }}>
               {h}h
@@ -129,7 +157,7 @@ export function CapimHoras(p: {
 
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-pedra">
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm bg-brotinho" aria-hidden /> {horaAgora === null ? "Melhor horário" : "Melhor que resta"}
+          <span className="size-2.5 rounded-sm bg-osso" aria-hidden /> Hora escolhida
         </span>
         {horaAgora !== null && (
           <span className="flex items-center gap-1.5">
@@ -138,16 +166,16 @@ export function CapimHoras(p: {
         )}
         {inseguras.length > 0 && (
           <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm bg-boia" aria-hidden /> Perigoso
+            <span className="size-2.5 rounded-sm bg-[#ff5c47]" aria-hidden /> Perigoso
           </span>
         )}
       </div>
 
-      <details className="mt-2 text-sm">
-        <summary className="flex items-center gap-1 py-1 text-xs text-pedra">
+      <details className="mt-1 text-sm">
+        <summary className="flex min-h-9 items-center gap-1 text-xs text-pedra">
           Ver em tabela <ChevronDown size={14} className="seta transition-transform" aria-hidden />
         </summary>
-        <table className="mt-2 w-full font-mono text-xs">
+        <table className="mt-1 w-full font-mono text-xs">
           <thead>
             <tr className="text-left text-pedra">
               <th className="py-1 font-normal">Hora</th>

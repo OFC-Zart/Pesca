@@ -43,11 +43,11 @@ export function horaDoIso(iso: string): string {
 export const TEXTO_CONFIANCA: Record<NivelConfianca, string> = { alta: "alta", media: "média", baixa: "baixa" };
 
 export const COR_NOTA: Record<string, string> = {
-  Fraco: "#8a6a45",
-  Regular: "#ab8e55",
-  Bom: "#7f9a3f",
-  "Muito bom": "#9dbd45",
-  Excelente: "#c9e96b",
+  Fraco: "#d47f55",
+  Regular: "#f2b23e",
+  Bom: "#8cc63f",
+  "Muito bom": "#b6e04f",
+  Excelente: "#e4fa7c",
 };
 
 export function piracemaAtiva(agora = new Date()): boolean {

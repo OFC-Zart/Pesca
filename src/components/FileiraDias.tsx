@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { diaMes, diaSemana, COR_NOTA } from "@/lib/formato";
+import { useEffect, useRef, type CSSProperties } from "react";
+import { CalendarRange, ShieldAlert } from "lucide-react";
+import { diaMes, diaSemana, COR_NOTA, TEXTO_CONFIANCA } from "@/lib/formato";
 import { fmt, escala } from "@/lib/indice/calculo";
 import type { DiaPrevisao } from "@/lib/indice/tipos";
-import { Bolinhas } from "./CenaBoia";
 import { IconeLua } from "./IconeLua";
+import { IconeTempo } from "./IconeTempo";
+import { CardumeConfianca, Peixe } from "./Peixes";
+import { TituloSecao } from "./TituloSecao";
 
 export interface ResumoDia {
   dia: DiaPrevisao;
@@ -32,53 +35,59 @@ export function FileiraDias(p: { dias: ResumoDia[]; selecionado: string; hoje: s
   }, [p.selecionado]);
 
   return (
-    <section aria-labelledby="titulo-dias">
-      <h2 id="titulo-dias" className="rotulo mb-2">
-        Próximos dias
-      </h2>
-      <div ref={trilho} className="sem-barra -mx-4 flex snap-x gap-2 overflow-x-auto scroll-pl-4 px-4 pb-1 pt-2.5">
+    <section className="revelar" aria-labelledby="titulo-dias">
+      <TituloSecao id="titulo-dias" titulo="Próximos dias" Icone={CalendarRange} cor="#62d6d3" />
+      <div ref={trilho} className="sem-barra borda-fade -mx-4 mt-1.5 flex snap-x gap-2 overflow-x-auto scroll-pl-4 px-4 pb-1 pt-3">
         {p.dias.map(({ dia, nota, min, max }, i) => {
           const sel = dia.data === p.selecionado;
           const tendencia = dia.fase === "tendencia";
           const nivel = nota !== null ? escala(nota) : null;
+          const cor = nivel ? COR_NOTA[nivel.nome] : "#80857a";
           return (
             <button
               key={dia.data}
               ref={sel ? ativo : undefined}
               onClick={() => p.onSelecionar(dia.data)}
               aria-pressed={sel}
-              style={{ opacity: sel ? 1 : tendencia ? 0.62 : Math.max(0.78, 1 - i * 0.03) }}
-              className={`relative flex min-h-[132px] w-[88px] shrink-0 snap-start flex-col rounded-xl border p-2.5 text-left transition-colors ${
-                sel ? "border-brotinho bg-folha" : "border-osso/10 bg-sombra/85 hover:border-osso/30"
+              aria-label={
+                tendencia
+                  ? `${diaSemana(dia.data)}, tendência, água ${fmt(dia.brutos.tempAgua, 0)} graus`
+                  : `${dia.data === p.hoje ? "Hoje" : diaSemana(dia.data)}, nota ${nota}, de ${min} a ${max}, confiança ${TEXTO_CONFIANCA[dia.confianca]}${dia.bloqueio ? ", não recomendado" : ""}`
+              }
+              style={{ "--i": Math.min(i, 8), borderTopColor: cor } as CSSProperties}
+              className={`aparece relative flex min-h-[148px] w-[98px] shrink-0 snap-start flex-col rounded-2xl border border-t-4 p-2.5 text-left transition-[translate] ${
+                sel ? "-translate-y-1 border-x-osso/50 border-b-osso/50 bg-folha" : `border-x-osso/10 border-b-osso/10 bg-sombra hover:bg-folha/70 ${tendencia ? "opacity-80" : ""}`
               }`}
             >
               {dia.data === melhor && (
-                <span className="absolute -top-2 left-2 rounded bg-boia px-1.5 py-px font-mono text-[9px] font-medium uppercase tracking-wider text-white">
-                  Melhor
-                </span>
+                <span className="absolute -top-3 right-1.5 rounded-md bg-ambar px-1.5 py-px text-[11px] font-bold text-breu">Melhor</span>
               )}
-              <span className="text-xs font-semibold capitalize">{dia.data === p.hoje ? "Hoje" : diaSemana(dia.data)}</span>
-              <span className="font-mono text-[11px] text-pedra">{diaMes(dia.data)}</span>
+              <span className="flex items-start justify-between gap-1">
+                <span className="text-sm font-bold capitalize leading-tight">{dia.data === p.hoje ? "Hoje" : diaSemana(dia.data)}</span>
+                <IconeTempo brutos={dia.brutos} />
+              </span>
+              <span className="font-mono text-xs text-pedra">{diaMes(dia.data)}</span>
 
               {tendencia ? (
                 <>
                   <span className="mt-2 flex items-center gap-1.5">
-                    <IconeLua astro={dia.astro} tam={18} />
-                    <span className="font-mono text-xs">{fmt(dia.brutos.tempAgua, 0)}°</span>
+                    <IconeLua astro={dia.astro} tam={20} />
+                    <span className="font-display text-2xl font-extrabold leading-none">{fmt(dia.brutos.tempAgua, 0)}°</span>
                   </span>
-                  <span className="mt-auto rounded border border-osso/20 px-1 py-px text-center font-mono text-[9px] uppercase tracking-wide text-pedra">
-                    Tendência
-                  </span>
+                  <span className="mt-1 text-xs text-pedra">água</span>
+                  <span className="mt-auto rounded-md border border-osso/25 px-1 py-px text-center text-[11px] font-medium text-pedra">Tendência</span>
                 </>
               ) : (
                 <>
-                  <span className={`mt-1 font-display text-[2.4rem] font-black leading-none ${dia.bloqueio ? "text-boia-clara" : ""}`}>{nota}</span>
-                  {nivel && <span className="mt-0.5 h-1 w-8 rounded-full" style={{ backgroundColor: COR_NOTA[nivel.nome] }} aria-hidden />}
-                  <span className="mt-1 font-mono text-[10px] text-pedra">
+                  <span className={`mt-1 flex items-center gap-1 font-display text-[2.6rem] font-black leading-none ${dia.bloqueio ? "text-boia-clara" : ""}`}>
+                    {nota}
+                    {dia.bloqueio && <ShieldAlert size={16} className="text-boia-clara" aria-hidden />}
+                  </span>
+                  <span className="mt-0.5 text-xs text-pedra">
                     {min}–{max}
                   </span>
-                  <span className="mt-auto pt-1" role="img" aria-label={`Confiança ${dia.confianca}`}>
-                    <Bolinhas nivel={dia.confianca} />
+                  <span className="mt-auto pt-1.5">
+                    <CardumeConfianca nivel={dia.confianca} tam={17} />
                   </span>
                 </>
               )}
@@ -86,6 +95,12 @@ export function FileiraDias(p: { dias: ResumoDia[]; selecionado: string; hoje: s
           );
         })}
       </div>
+      <p className="mt-1.5 flex items-start gap-1.5 text-xs text-pedra">
+        <span className="shrink-0">
+          <Peixe cheio tam={16} cor="#62d6d3" />
+        </span>
+        <span>Peixinhos azuis: confiança da previsão do tempo. 4 é alta, 3 é média, 2 é baixa.</span>
+      </p>
     </section>
   );
 }
