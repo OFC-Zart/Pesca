@@ -1,4 +1,5 @@
 import type { NextResponse } from "next/server";
+import { urlDoBanco } from "@/lib/db/url";
 
 /** Sessão sem tabela: um cookie assinado com "id.validade.assinatura". O proxy confere sem ir ao banco. */
 export const COOKIE_SESSAO = "idfish_sessao";
@@ -27,7 +28,7 @@ function deBase64Url(texto: string): Uint8Array<ArrayBuffer> | null {
  * Se a senha do banco mudar, todo mundo só precisa entrar de novo.
  */
 async function chave(): Promise<CryptoKey | null> {
-  const url = process.env.DATABASE_URL;
+  const url = urlDoBanco();
   if (!url) return null;
   return crypto.subtle.importKey("raw", codificador.encode(`idfish-sessao:${url}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
 }

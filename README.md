@@ -5,7 +5,7 @@
 ## Publicar na Vercel
 
 1. Importe este repositório na Vercel. Cada push na `main` publica o site.
-2. Em *Storage*, conecte o banco Neon ao projeto. A variável `DATABASE_URL` é criada pela integração, e as tabelas são criadas sozinhas no deploy seguinte.
+2. No [Console do Neon](https://console.neon.tech), abra o projeto, clique em *Connect* e copie a connection string. Na Vercel, em *Settings → Environment Variables*, crie `DATABASE_URL` com esse valor. As tabelas são criadas sozinhas no deploy seguinte. Quem criou o banco pela aba *Storage* da Vercel pode conectá-lo por lá, sem copiar nada.
 3. Em *Settings → Environment Variables*, defina:
    - `CODIGO_ACESSO`: o código da turma, inventado por você. É pedido só para criar conta; trocar este valor não derruba quem já entrou.
    - `CRON_SECRET`: um texto longo qualquer; protege a gravação diária das previsões.

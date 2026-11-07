@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { urlDoBanco } from "@/lib/db/url";
 import { COOKIE_SESSAO, lerTokenSessao } from "@/lib/sessao";
 
 /** O que precisa abrir sem login: a entrada, o cadastro, o cron (tem segredo próprio) e a arte dessas telas. */
@@ -21,7 +22,7 @@ export async function proxy(req: NextRequest) {
   const caminho = req.nextUrl.pathname;
 
   // Sem banco não há contas: só o ambiente de desenvolvimento fica aberto. Em produção, o site fica trancado.
-  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== "production") return NextResponse.next();
+  if (!urlDoBanco() && process.env.NODE_ENV !== "production") return NextResponse.next();
 
   const logado = Boolean(await lerTokenSessao(req.cookies.get(COOKIE_SESSAO)?.value));
 

@@ -4,11 +4,12 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 import { LOCAIS_PADRAO } from "../src/config/indice";
 import { locais } from "../src/lib/db/schema";
+import { urlDoBanco } from "../src/lib/db/url";
 
 async function main() {
-  const url = process.env.DATABASE_URL;
+  const url = urlDoBanco();
   if (!url) {
-    console.log("Sem DATABASE_URL: pulando o preparo do banco.");
+    console.log("Nenhum banco configurado: pulando o preparo das tabelas.");
     return;
   }
   const db = drizzle(neon(url));
