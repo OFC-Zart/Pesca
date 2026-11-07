@@ -13,6 +13,7 @@ const ITENS = [
 
 export function NavegacaoTopo() {
   const rota = usePathname();
+  if (rota === "/entrar") return null;
   return (
     <nav aria-label="Principal" className="hidden items-center gap-1 md:flex">
       {ITENS.map(({ href, nome }) => (
@@ -33,6 +34,7 @@ export function NavegacaoTopo() {
 
 export function NavegacaoBase() {
   const rota = usePathname();
+  if (rota === "/entrar") return null;
   return (
     <nav
       aria-label="Principal"

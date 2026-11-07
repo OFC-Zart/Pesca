@@ -4,23 +4,14 @@
 
 ## Publicar na Vercel
 
-1. Importe este repositório na Vercel. Nenhuma configuração é necessária: o site já funciona.
-2. Sem banco, cada pescaria fica salva só no aparelho de quem registrou.
+1. Importe este repositório na Vercel. Cada push na `main` publica o site.
+2. Em *Settings → Environment Variables*, defina:
+   - `CODIGO_ACESSO`: o código que a turma digita para entrar. Trocar este valor e fazer um novo deploy derruba os acessos antigos.
+   - `CRON_SECRET`: um texto longo qualquer; protege a gravação diária das previsões.
+3. Em *Storage*, conecte o banco Neon ao projeto. A variável `DATABASE_URL` é criada pela integração, e as tabelas são criadas sozinhas no deploy seguinte.
+4. Faça um novo deploy para as variáveis valerem.
 
-## Ligar o banco (diário compartilhado, calibração e novos locais)
-
-1. Crie um projeto em [neon.tech](https://neon.tech) e copie a connection string.
-2. Na Vercel, em *Settings → Environment Variables*, adicione:
-   - `DATABASE_URL`: a connection string do Neon
-   - `ADMIN_KEY`: uma senha longa, usada para cadastrar locais em `/locais`
-   - `CRON_SECRET`: outro texto longo; protege a gravação diária das previsões
-3. No seu computador, crie as tabelas e os locais iniciais, uma única vez:
-
-   ```bash
-   DATABASE_URL="cole-aqui" npm run db:setup
-   ```
-
-4. Faça um novo deploy na Vercel.
+Sem `CODIGO_ACESSO`, o site publicado fica trancado. Sem banco, cada pescaria fica salva só no aparelho de quem registrou.
 
 ## Ajustar o índice
 
@@ -45,4 +36,4 @@ npm run dev
 npm test
 ```
 
-Clima: [Open-Meteo](https://open-meteo.com), gratuito para uso não comercial. Se o site passar a ter receita, é preciso um plano pago.
+Clima: [Open-Meteo](https://open-meteo.com), gratuito para uso não comercial.

@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: { default: `${SITE.nome} · ${SITE.significado} em ${SITE.regiao}`, template: `%s · ${SITE.nome}` },
   description: SITE.descricao,
   applicationName: SITE.nome,
+  robots: { index: false, follow: false },
   icons: { icon: "/icons/favicon.png", apple: "/icons/apple-touch.png" },
   appleWebApp: { capable: true, title: SITE.nome, statusBarStyle: "black-translucent" },
 };

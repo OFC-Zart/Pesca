@@ -12,7 +12,6 @@ export function GerenciarLocais() {
   const [tipo, setTipo] = useState<TipoAgua>("acude");
   const [lat, setLat] = useState("");
   const [lon, setLon] = useState("");
-  const [chave, setChave] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
 
   const carregar = () =>
@@ -36,7 +35,7 @@ export function GerenciarLocais() {
     try {
       const r = await fetch("/api/locais", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-admin-key": chave },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nome, tipo, lat: num(lat), lon: num(lon) }),
       });
       const j = await r.json();
@@ -89,7 +88,7 @@ export function GerenciarLocais() {
           Novo ponto
         </h2>
         {locais && !podeCadastrar ? (
-          <p className="painel p-4 text-sm text-pedra">Para cadastrar pontos, ligue o banco e defina ADMIN_KEY na Vercel. O passo a passo está no README.</p>
+          <p className="painel p-4 text-sm text-pedra">Para cadastrar pontos, o banco precisa estar ligado na Vercel. O passo a passo está no README.</p>
         ) : (
           <form onSubmit={enviar} className="painel grid gap-4 p-4">
             <label className="grid gap-1 text-sm font-medium">
@@ -119,10 +118,6 @@ export function GerenciarLocais() {
             <button type="button" onClick={usarGps} className="min-h-11 rounded-lg border border-osso/20 text-sm font-semibold">
               Usar minha localização
             </button>
-            <label className="grid gap-1 text-sm font-medium">
-              Chave de administrador
-              <input required type="password" autoComplete="off" value={chave} onChange={(e) => setChave(e.target.value)} className="campo" />
-            </label>
             {msg && (
               <p role="status" className={`rounded-lg border px-3 py-2 text-sm ${msg.ok ? "border-broto/50 bg-folha" : "border-boia bg-sangue"}`}>
                 {msg.texto}

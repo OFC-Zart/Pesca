@@ -1,5 +1,5 @@
 // Deixa o site abrir sem sinal na beira do rio.
-const CACHE = "idfish-v2";
+const CACHE = "idfish-v3";
 const PAGINAS = ["/", "/registrar", "/historico", "/como-funciona"];
 
 self.addEventListener("install", (e) => {
@@ -13,7 +13,7 @@ async function guardarTudo() {
   await Promise.all(
     PAGINAS.map(async (p) => {
       const r = await fetch(p);
-      if (!r.ok) return;
+      if (!r.ok || r.redirected) return;
       await cache.put(p, r.clone());
       for (const m of (await r.text()).matchAll(/\/_next\/static\/[^"'\\\s<>)]+/g)) arquivos.add(m[0]);
     }),
@@ -34,7 +34,7 @@ async function redePrimeiro(req) {
   const cache = await caches.open(CACHE);
   try {
     const r = await fetch(req);
-    if (r.ok) cache.put(req, r.clone());
+    if (r.ok && !r.redirected) cache.put(req, r.clone());
     return r;
   } catch (err) {
     const salvo = await cache.match(req, { ignoreSearch: req.mode === "navigate" });

@@ -1,4 +1,4 @@
-/** Aplica as migrações e cadastra os locais iniciais. Rode uma vez: npm run db:setup */
+/** Aplica as migrações e cadastra os locais iniciais. Roda sozinho em cada build; repetir não muda nada. */
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
@@ -7,7 +7,10 @@ import { locais } from "../src/lib/db/schema";
 
 async function main() {
   const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("Defina DATABASE_URL antes de rodar este comando.");
+  if (!url) {
+    console.log("Sem DATABASE_URL: pulando o preparo do banco.");
+    return;
+  }
   const db = drizzle(neon(url));
   await migrate(db, { migrationsFolder: "./drizzle" });
   await db.insert(locais).values(LOCAIS_PADRAO.map((l) => ({ ...l }))).onConflictDoNothing();
