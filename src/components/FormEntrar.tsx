@@ -97,7 +97,7 @@ export function FormEntrar() {
         {modo === "criar" && (
           <label className="grid gap-1 text-sm font-medium">
             Seu nome
-            <input required minLength={2} maxLength={30} name="name" autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Como a turma te chama" className="campo" />
+            <input required minLength={2} maxLength={30} name="name" autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Como o grupo te chama" className="campo" />
           </label>
         )}
 
@@ -123,10 +123,10 @@ export function FormEntrar() {
           <>
             <SeletorPeixe valor={icone} onMudar={setIcone} />
             <label className="grid gap-1 text-sm font-medium">
-              Código da turma
+              Código do grupo
               <input
                 required
-                name="codigo-turma"
+                name="codigo-grupo"
                 autoComplete="off"
                 autoCapitalize="none"
                 autoCorrect="off"

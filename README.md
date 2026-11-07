@@ -7,13 +7,13 @@
 1. Importe este repositório na Vercel. Cada push na `main` publica o site.
 2. No [Console do Neon](https://console.neon.tech), abra o projeto, clique em *Connect* e copie a connection string. Na Vercel, em *Settings → Environment Variables*, crie `DATABASE_URL` com esse valor. As tabelas são criadas sozinhas no deploy seguinte. Quem criou o banco pela aba *Storage* da Vercel pode conectá-lo por lá, sem copiar nada.
 3. Em *Settings → Environment Variables*, defina:
-   - `CODIGO_ACESSO`: o código da turma, inventado por você. É pedido só para criar conta; trocar este valor não derruba quem já entrou.
+   - `CODIGO_ACESSO`: o código do grupo, inventado por você. É pedido só para criar conta; trocar este valor não derruba quem já entrou.
    - `CRON_SECRET`: um texto longo qualquer; protege a gravação diária das previsões.
 4. Faça um novo deploy para as variáveis valerem.
 
-## Como a turma entra
+## Como o grupo entra
 
-Cada pessoa cria uma conta uma vez, com nome, usuário, senha, fotinha de peixe e o código da turma. Depois, entra só com usuário e senha, e o aparelho continua logado por um ano. Sem banco, ninguém consegue entrar no site publicado.
+Cada pessoa cria uma conta uma vez, com nome, usuário, senha, fotinha de peixe e o código do grupo. Depois, entra só com usuário e senha, e o aparelho continua logado por um ano. Sem banco, ninguém consegue entrar no site publicado.
 
 ## Ajustar o índice
 

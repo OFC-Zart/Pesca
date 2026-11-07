@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   }
   const certo = process.env.CODIGO_ACESSO;
   if (!certo) {
-    return NextResponse.json({ erro: "O código da turma ainda não foi definido na Vercel." }, { status: 503 });
+    return NextResponse.json({ erro: "O código do grupo ainda não foi definido na Vercel." }, { status: 503 });
   }
 
   const parsed = esquemaCadastro.safeParse(await req.json().catch(() => null));
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   // O código vem antes de olhar os usuários: quem não tem o código não descobre quem já existe.
   if (!codigoConfere(codigo, certo)) {
     await new Promise((r) => setTimeout(r, ESPERA_ERRO_MS));
-    return NextResponse.json({ erro: "Código da turma errado. Confira com quem te passou o link." }, { status: 401 });
+    return NextResponse.json({ erro: "Código do grupo errado. Confira com quem te passou o link." }, { status: 401 });
   }
 
   const novo = await criarUsuario({ ...dados, senhaHash: await gerarHashSenha(senha) });

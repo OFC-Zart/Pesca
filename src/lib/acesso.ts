@@ -7,7 +7,7 @@ export function normalizarCodigo(codigo: string): string {
 
 const resumo = (s: string) => createHash("sha256").update(normalizarCodigo(s)).digest();
 
-/** O código da turma só é pedido para criar conta. */
+/** O código do grupo só é pedido para criar conta. */
 export function codigoConfere(digitado: string, certo: string): boolean {
   if (!normalizarCodigo(digitado)) return false;
   return timingSafeEqual(resumo(digitado), resumo(certo));

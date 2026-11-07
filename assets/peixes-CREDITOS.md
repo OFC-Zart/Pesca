@@ -15,7 +15,7 @@ Todas as ilustrações vêm do [FreeSVG](https://freesvg.org), marcadas na pági
 | Cara de Bobo | Cartoon fish-1624483352 | OpenClipart | https://freesvg.org/cartoon-fish-1624483352 |
 | Arrotão | fish happy | OpenClipart | https://freesvg.org/fish-happy |
 | Doidão | Fish cartoon drawing | OpenClipart | https://freesvg.org/fish-cartoon-drawing |
-| Palhaço da Turma | fish cartoon | OpenClipart | https://freesvg.org/fish-cartoon |
+| Palhaço do Grupo | fish cartoon | OpenClipart | https://freesvg.org/fish-cartoon |
 | Morto de Fome | Funny Fish | OpenClipart | https://freesvg.org/mystica-funny-fish |
 | Fofoqueiro | Cartoon Fish 2 | OpenClipart | https://freesvg.org/cartoon-fish-2 |
 | Mal-Humorado | Orange cartoon fish | OpenClipart | https://freesvg.org/orange-cartoon-fish |

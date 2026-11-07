@@ -1,4 +1,4 @@
-/** Fotinhas da turma: ilustrações em domínio público (CC0). Créditos em assets/peixes-CREDITOS.md. */
+/** Fotinhas do grupo: ilustrações em domínio público (CC0). Créditos em assets/peixes-CREDITOS.md. */
 export const PEIXES = [
   { id: "tubarao-malandro", nome: "Tubarão Malandro" },
   { id: "tubarao-vaca", nome: "Tubarão Vaca" },
@@ -11,7 +11,7 @@ export const PEIXES = [
   { id: "cara-de-bobo", nome: "Cara de Bobo" },
   { id: "peixe-arrotao", nome: "Arrotão" },
   { id: "peixe-doidao", nome: "Doidão" },
-  { id: "palhaco-da-turma", nome: "Palhaço da Turma" },
+  { id: "palhaco-do-grupo", nome: "Palhaço do Grupo" },
   { id: "morto-de-fome", nome: "Morto de Fome" },
   { id: "peixe-fofoqueiro", nome: "Fofoqueiro" },
   { id: "mal-humorado", nome: "Mal-Humorado" },

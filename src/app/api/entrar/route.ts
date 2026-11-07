@@ -9,7 +9,7 @@ const ESPERA_ERRO_MS = 600;
 const ERRO = "Usuário ou senha errados.";
 
 async function recusar() {
-  // Atraso pequeno: atrapalha quem tenta adivinhar e ninguém da turma percebe.
+  // Atraso pequeno: atrapalha quem tenta adivinhar e ninguém do grupo percebe.
   await new Promise((r) => setTimeout(r, ESPERA_ERRO_MS));
   return NextResponse.json({ erro: ERRO }, { status: 401 });
 }
