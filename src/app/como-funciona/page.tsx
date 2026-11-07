@@ -1,11 +1,12 @@
-import { BookMarked, Calculator, Clock, Fish, Gauge, ShieldCheck, Thermometer, type LucideIcon } from "lucide-react";
+import { BookMarked, Calculator, Clock, Fish, Gauge, Layers, ShieldCheck, Thermometer, type LucideIcon } from "lucide-react";
+import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import { CardumeConfianca, Peixe, PeixeEspecie } from "@/components/Peixes";
 import { TituloPagina } from "@/components/TituloPagina";
 import { TituloSecao } from "@/components/TituloSecao";
-import { ESCALA, ESPECIES, ESPECIE_IDS, LEGENDA_PERIODO, PESOS, type CondicaoId } from "@/config/indice";
+import { ESCALA, ESPECIES, ESPECIE_IDS, LEGENDA_PERIODO, PESOS_POR_TIPO, type CondicaoId } from "@/config/indice";
 import { SITE } from "@/config/site";
 import { COR_NOTA } from "@/lib/formato";
 import type { NivelConfianca } from "@/lib/indice/tipos";
@@ -20,12 +21,16 @@ const CONDICOES: { id: CondicaoId; nome: string; texto: string }[] = [
   { id: "nuvens", nome: "Nuvens", texto: "De dia, de 40 a 80% é o ideal para a maioria das espécies." },
   { id: "pressao", nome: "Pressão", texto: "Sem prova de efeito direto. Entra porque denuncia a frente fria." },
   { id: "lua", nome: "Lua", texto: "Está aqui, mas pequena: os estudos mostram pouco efeito." },
+  { id: "rio", nome: "Nível do rio", texto: "Só no rio. Medido pela ANA: subindo mais de 30 cm em 24 h derruba; mais de 1 m é cheia e acende o aviso." },
+  { id: "represa", nome: "Nível da represa", texto: "Só na represa. Medido pelo ONS: queda de 1 a 3 m em 7 dias tira bastante; acima de 3 m, mais." },
 ];
+
+const pct = (x: number) => `${Math.round(x * 100)}%`;
 
 const NIVEIS: { nivel: NivelConfianca; nome: string; texto: string }[] = [
   { nivel: "alta", nome: "Alta", texto: "Os cenários do tempo concordam." },
   { nivel: "media", nome: "Média", texto: "Há alguma diferença entre eles." },
-  { nivel: "baixa", nome: "Baixa", texto: "Eles discordam bastante." },
+  { nivel: "baixa", nome: "Baixa", texto: "Eles discordam bastante, ou os seis modelos discordam entre si." },
 ];
 
 const FONTES = [
@@ -41,6 +46,10 @@ const FONTES = [
   "Carpa capim e black bass: USFWS e revisão em Water (2023)",
   "Boyd (Auburn): temperatura da água em viveiros",
   "Piracema 2026/27 na bacia do Uruguai: regras da Polícia Militar Ambiental",
+  "Open-Meteo: modelos ECMWF IFS, GFS, ICON, GEM e JMA, Previous Runs API e Historical Forecast API",
+  "INMET: estações automáticas de Lages, São Joaquim, Campos Novos, Curitibanos e Vacaria",
+  "ANA: Hidro-Telemetria (nível e chuva dos rios Canoas, Caveiras, Pelotas e afluentes)",
+  "ONS: dados hidrológicos diários dos reservatórios (Campos Novos, Barra Grande, Garibaldi e São Roque)",
 ];
 
 function Bloco({ titulo, Icone, cor, children }: { titulo: string; Icone: LucideIcon; cor: string; children: React.ReactNode }) {
@@ -84,10 +93,10 @@ export default function Pagina() {
               </div>
             </li>
           </ul>
-          <p>As condições são uma média destes pesos, com o clima daquela hora:</p>
+          <p>As condições são uma média destes pesos, com o clima daquela hora. No açude vale a primeira coluna; rio e represa têm pesos próprios e entram com o nível da água:</p>
           <ul className="painel divide-y divide-osso/10">
             {CONDICOES.map((f) => {
-              const peso = PESOS[f.id] * 100;
+              const peso = Math.max(PESOS_POR_TIPO.acude[f.id], PESOS_POR_TIPO.rio[f.id], PESOS_POR_TIPO.represa[f.id]) * 100;
               const Icone = ICONE_FATOR[f.id];
               return (
                 <li key={f.id} className="flex gap-3 p-3.5" style={{ "--acento": COR_FATOR[f.id] } as CSSProperties}>
@@ -97,7 +106,9 @@ export default function Pagina() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
                       <strong className="font-semibold">{f.nome}</strong>
-                      <span className="font-mono text-sm">{peso.toFixed(0)}%</span>
+                      <span className="font-mono text-xs text-pedra">
+                        açude {pct(PESOS_POR_TIPO.acude[f.id])} · rio {pct(PESOS_POR_TIPO.rio[f.id])} · represa {pct(PESOS_POR_TIPO.represa[f.id])}
+                      </span>
                     </div>
                     <span className="mt-1.5 block h-2 rounded-full bg-terra">
                       <span className="barra block h-full rounded-full" style={{ width: `${(peso / 30) * 100}%`, backgroundColor: COR_FATOR[f.id] }} />
@@ -148,6 +159,26 @@ export default function Pagina() {
                 </li>
               ))}
             </ul>
+          </Bloco>
+
+          <Bloco titulo="De onde vem o clima" Icone={Layers} cor="#62d6d3">
+            <p>
+              O futuro é a média de seis modelos de previsão (ECMWF, GFS, ICON, GEM, JMA e a combinação do Open-Meteo). Todo dia o site confere o que cada um previu, de 1 a 7 dias antes, com o que
+              aconteceu em Lages, São Joaquim e Campos Novos. Quem erra menos ganha mais peso (1 ÷ erro²), e o erro que se repete em cada faixa do dia é descontado.
+            </p>
+            <p>
+              O passado vem do que foi medido: chuva das estações da ANA perto do ponto e, com o token do INMET, ar, pressão e vento da estação mais próxima. Sem medição, fica a estimativa do Open-Meteo, e
+              a tela diz isso em cada fator.
+            </p>
+            <p>
+              <Link href="/fontes" className="font-semibold underline underline-offset-2">
+                Ver as fontes agora
+              </Link>{" "}
+              ·{" "}
+              <Link href="/precisao" className="font-semibold underline underline-offset-2">
+                Ver a precisão de cada modelo
+              </Link>
+            </p>
           </Bloco>
 
           <Bloco titulo="Por hora" Icone={Clock} cor="#ffd166">
@@ -219,7 +250,7 @@ export default function Pagina() {
                 <li key={f}>{f}</li>
               ))}
             </ul>
-            <p className="text-sm text-pedra">Clima: Open-Meteo. Sol e lua: SunCalc. Fotinhas de peixe: ilustrações em domínio público (CC0) do FreeSVG.</p>
+            <p className="text-sm text-pedra">Clima: Open-Meteo, INMET, ANA e ONS. Sol e lua: SunCalc. Fotinhas de peixe: ilustrações em domínio público (CC0) do FreeSVG.</p>
           </Bloco>
         </div>
       </div>

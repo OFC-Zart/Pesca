@@ -1,0 +1,830 @@
+{
+  "id": "e2b43a6b-0c9c-4bcc-a45a-1c01f2360fdb",
+  "prevId": "46294da7-e3a5-445b-8630-345e91d43083",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.capturas": {
+      "name": "capturas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "saida_id": {
+          "name": "saida_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "especie": {
+          "name": "especie",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantidade": {
+          "name": "quantidade",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tamanho_cm": {
+          "name": "tamanho_cm",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "capturas_saida_id_saidas_id_fk": {
+          "name": "capturas_saida_id_saidas_id_fk",
+          "tableFrom": "capturas",
+          "tableTo": "saidas",
+          "columnsFrom": [
+            "saida_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fontes_brutas": {
+      "name": "fontes_brutas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "fonte": {
+          "name": "fonte",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "obtido_em": {
+          "name": "obtido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tamanho": {
+          "name": "tamanho",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "conteudo": {
+          "name": "conteudo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "fontes_brutas_unica": {
+          "name": "fontes_brutas_unica",
+          "nullsNotDistinct": false,
+          "columns": [
+            "fonte",
+            "obtido_em"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.fontes_status": {
+      "name": "fontes_status",
+      "schema": "",
+      "columns": {
+        "fonte": {
+          "name": "fonte",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "grupo": {
+          "name": "grupo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ultima_tentativa": {
+          "name": "ultima_tentativa",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ultimo_sucesso": {
+          "name": "ultimo_sucesso",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dado_de": {
+          "name": "dado_de",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "erro": {
+          "name": "erro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.locais": {
+      "name": "locais",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lat": {
+          "name": "lat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lon": {
+          "name": "lon",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "calib_a": {
+          "name": "calib_a",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "calib_b": {
+          "name": "calib_b",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "calib_n": {
+          "name": "calib_n",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "profundidade": {
+          "name": "profundidade",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "estacao": {
+          "name": "estacao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "represa": {
+          "name": "represa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.medicoes_agua": {
+      "name": "medicoes_agua",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "local_id": {
+          "name": "local_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "medido_em": {
+          "name": "medido_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "temperatura": {
+          "name": "temperatura",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "media_ar": {
+          "name": "media_ar",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agua_modelo": {
+          "name": "agua_modelo",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "medicoes_agua_local_id_locais_id_fk": {
+          "name": "medicoes_agua_local_id_locais_id_fk",
+          "tableFrom": "medicoes_agua",
+          "tableTo": "locais",
+          "columnsFrom": [
+            "local_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.niveis_represa": {
+      "name": "niveis_represa",
+      "schema": "",
+      "columns": {
+        "represa": {
+          "name": "represa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nivel": {
+          "name": "nivel",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "volume": {
+          "name": "volume",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "origem": {
+          "name": "origem",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "niveis_represa_represa_data_pk": {
+          "name": "niveis_represa_represa_data_pk",
+          "columns": [
+            "represa",
+            "data"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.observacoes": {
+      "name": "observacoes",
+      "schema": "",
+      "columns": {
+        "ponto": {
+          "name": "ponto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variavel": {
+          "name": "variavel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "faixa": {
+          "name": "faixa",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valor": {
+          "name": "valor",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origem": {
+          "name": "origem",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "observacoes_ponto_variavel_data_faixa_pk": {
+          "name": "observacoes_ponto_variavel_data_faixa_pk",
+          "columns": [
+            "ponto",
+            "variavel",
+            "data",
+            "faixa"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.precisao": {
+      "name": "precisao",
+      "schema": "",
+      "columns": {
+        "data": {
+          "name": "data",
+          "type": "date",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "resumo": {
+          "name": "resumo",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.previsoes": {
+      "name": "previsoes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "data_alvo": {
+          "name": "data_alvo",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_id": {
+          "name": "local_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "especie": {
+          "name": "especie",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nota": {
+          "name": "nota",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "faixa_min": {
+          "name": "faixa_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "faixa_max": {
+          "name": "faixa_max",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fatores": {
+          "name": "fatores",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "previsoes_local_id_locais_id_fk": {
+          "name": "previsoes_local_id_locais_id_fk",
+          "tableFrom": "previsoes",
+          "tableTo": "locais",
+          "columnsFrom": [
+            "local_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "previsoes_unica": {
+          "name": "previsoes_unica",
+          "nullsNotDistinct": false,
+          "columns": [
+            "data_alvo",
+            "criado_em",
+            "local_id",
+            "especie"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.previsoes_modelos": {
+      "name": "previsoes_modelos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ponto": {
+          "name": "ponto",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "modelo": {
+          "name": "modelo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variavel": {
+          "name": "variavel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_alvo": {
+          "name": "data_alvo",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "faixa": {
+          "name": "faixa",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "antecedencia": {
+          "name": "antecedencia",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valor": {
+          "name": "valor",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "previsoes_modelos_unica": {
+          "name": "previsoes_modelos_unica",
+          "nullsNotDistinct": false,
+          "columns": [
+            "ponto",
+            "modelo",
+            "variavel",
+            "data_alvo",
+            "faixa",
+            "antecedencia"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.saidas": {
+      "name": "saidas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cliente_id": {
+          "name": "cliente_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "inicio": {
+          "name": "inicio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fim": {
+          "name": "fim",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_id": {
+          "name": "local_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "especie_alvo": {
+          "name": "especie_alvo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isca": {
+          "name": "isca",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usuario_id": {
+          "name": "usuario_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apelido": {
+          "name": "apelido",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nota": {
+          "name": "nota",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fatores": {
+          "name": "fatores",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "saidas_local_id_locais_id_fk": {
+          "name": "saidas_local_id_locais_id_fk",
+          "tableFrom": "saidas",
+          "tableTo": "locais",
+          "columnsFrom": [
+            "local_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "saidas_usuario_id_usuarios_id_fk": {
+          "name": "saidas_usuario_id_usuarios_id_fk",
+          "tableFrom": "saidas",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "usuario_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "saidas_cliente_id_unique": {
+          "name": "saidas_cliente_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "cliente_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.usuarios": {
+      "name": "usuarios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "usuario": {
+          "name": "usuario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "icone": {
+          "name": "icone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "senha_hash": {
+          "name": "senha_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "usuarios_usuario_unique": {
+          "name": "usuarios_usuario_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "usuario"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

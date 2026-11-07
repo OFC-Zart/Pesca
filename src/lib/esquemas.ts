@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ESTACOES_ANA, REPRESAS } from "@/config/fontes";
 import { PEIXE_IDS } from "@/config/peixes";
 
 const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido");
@@ -25,6 +26,16 @@ export const esquemaLocal = z.object({
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
   profundidade: z.number().min(0.3).max(100).optional(),
+  estacao: z.enum(ESTACOES_ANA.map((e) => e.id) as [string, ...string[]]).optional(),
+  represa: z.enum(REPRESAS.map((r) => r.id) as [string, ...string[]]).optional(),
+});
+
+/** Troca a estação do rio, a represa ou a profundidade de um ponto já cadastrado. Null volta para "a mais perto". */
+export const esquemaEdicaoLocal = z.object({
+  id: z.string().min(1).max(80),
+  estacao: z.enum(ESTACOES_ANA.map((e) => e.id) as [string, ...string[]]).nullable().optional(),
+  represa: z.enum(REPRESAS.map((r) => r.id) as [string, ...string[]]).nullable().optional(),
+  profundidade: z.number().min(0.3).max(100).nullable().optional(),
 });
 
 const campoNome = z.string().trim().min(2, "Nome muito curto.").max(30, "Nome muito longo.");

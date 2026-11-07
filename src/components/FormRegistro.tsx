@@ -86,7 +86,7 @@ export function FormRegistro() {
         <CheckCircle2 size={48} className="pulo mx-auto text-broto" aria-hidden />
         <h2 className="mt-3 font-display text-4xl font-black uppercase leading-none">{total === 0 ? "Zerou, mas conta!" : `${total} ${total === 1 ? "peixe anotado" : "peixes anotados"}`}</h2>
         <p className="mt-2 text-sm text-osso/90">
-          {resultado === "ok" && "Pescaria salva com o clima do dia. Cada registro deixa o índice mais certeiro para Cerro Negro."}
+          {resultado === "ok" && "Pescaria salva com o clima do dia. Cada registro deixa o índice mais certeiro na Serra."}
           {resultado === "sem-banco" && "Salva neste aparelho. O diário compartilhado ainda não está ligado."}
           {resultado === "falha" && "Salva neste aparelho. Ela será enviada quando o sinal voltar."}
         </p>

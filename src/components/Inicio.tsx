@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudOff, Info, MapPin, PlusCircle, RefreshCw, TriangleAlert } from "lucide-react";
 import { AVISO_DOURADO, ESPECIES, ESPECIE_IDS, LOCAIS_PADRAO, type EspecieId } from "@/config/indice";
 import { gravarPrevisao, lerPrevisao, prefs } from "@/lib/armazem";
@@ -19,6 +19,7 @@ import { PeixeEspecie } from "./Peixes";
 import { Ranking, ordenarEspecies } from "./Ranking";
 import { ResumoRapido } from "./ResumoRapido";
 import { SeloOrigem } from "./Selos";
+import { FONTES_VAZIAS } from "@/lib/indice/previsao-vazia";
 
 type Filtro = EspecieId | "todas";
 const UMA_HORA = 3600_000;
@@ -183,16 +184,11 @@ export function Inicio() {
 
             <FileiraDias dias={resumo} selecionado={dia.data} hoje={agora.data} onSelecionar={setData} />
 
-            {filtro !== "todas" && <Fatores dia={dia} especie={filtro} nota={dia.especies[filtro]} local={previsao!.local} />}
-
-            {previsao && (
-              <p className="flex items-start gap-1.5 text-xs text-pedra" style={{ "--acento": "#62d6d3" } as CSSProperties}>
-                <RefreshCw size={13} className="mt-0.5 shrink-0" aria-hidden />
-                <span>
-                  Atualizado às {horaDoIso(previsao.atualizadoEm)}. {previsao.fonteConfianca === "ensemble" ? "Confiança calculada com 31 cenários do tempo." : "Confiança estimada pela distância do dia."}
-                </span>
-              </p>
+            {filtro !== "todas" && (
+              <Fatores dia={dia} especie={filtro} nota={dia.especies[filtro]} local={previsao!.local} fontes={previsao!.fontes ?? FONTES_VAZIAS} ehHoje={dia.data === agora.data} />
             )}
+
+            {previsao && <RodapeFontes previsao={previsao} />}
           </div>
         </div>
       )}
@@ -246,6 +242,35 @@ function CenaDoDia({ dia, filtro, especie, hoje, horaDecimal }: { dia: DiaPrevis
       bloqueio={dia.bloqueio}
       cenario={cenario}
     />
+  );
+}
+
+/** Quando a previsão foi feita, com quantas fontes, e o aviso discreto quando alguma falhou. */
+function RodapeFontes({ previsao }: { previsao: Previsao }) {
+  const f = previsao.fontes ?? FONTES_VAZIAS;
+  const partes = [
+    `Atualizado às ${horaDoIso(previsao.atualizadoEm)}.`,
+    f.modelos ? `Média de ${f.modelos} modelos${f.pesos === "precisao" ? " com peso pela precisão" : ""}${f.correcaoVies ? " e correção de viés" : ""}.` : null,
+    previsao.fonteConfianca === "ensemble" ? "Confiança com 31 cenários do tempo." : "Confiança pela distância do dia.",
+  ].filter(Boolean);
+  return (
+    <div className="grid gap-1.5 text-xs text-pedra">
+      <p className="flex items-start gap-1.5">
+        <RefreshCw size={13} className="mt-0.5 shrink-0" aria-hidden />
+        <span>
+          {partes.join(" ")}{" "}
+          <Link href="/fontes" className="font-semibold text-osso/85 underline underline-offset-2">
+            Fontes e precisão
+          </Link>
+        </span>
+      </p>
+      {f.avisos.length > 0 && (
+        <p className="flex items-start gap-1.5 text-barro">
+          <TriangleAlert size={13} className="mt-0.5 shrink-0" aria-hidden />
+          <span>{f.avisos.join(" ")}</span>
+        </p>
+      )}
+    </div>
   );
 }
 

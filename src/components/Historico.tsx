@@ -175,7 +175,7 @@ export function Historico() {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-2 text-xs text-pedra">Com 150 a 200 saídas registradas, os pesos do índice podem ser ajustados com estes dados de Cerro Negro.</p>
+              <p className="mt-2 text-xs text-pedra">Com 150 a 200 saídas registradas, os pesos do índice podem ser ajustados com estes dados da Serra.</p>
             </>
           ) : (
             <p className="painel mt-2.5 p-4 text-sm text-pedra">O resumo aparece depois da primeira pescaria.</p>

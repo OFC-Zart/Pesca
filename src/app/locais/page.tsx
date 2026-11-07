@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Locais" };
 export default function Pagina() {
   return (
     <>
-      <TituloPagina Icone={MapPin} cor="#a9cb54" titulo="Locais" sub="Cada ponto tem seu clima e seu tipo de água. As medições de termômetro calibram a água de cada um." />
+      <TituloPagina Icone={MapPin} cor="#a9cb54" titulo="Locais" sub="Cada ponto da Serra tem seu clima e seu tipo de água. Rio usa o nível da ANA; represa, o do ONS. As medições de termômetro calibram a água de cada um." />
       <GerenciarLocais />
     </>
   );

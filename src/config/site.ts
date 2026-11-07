@@ -2,7 +2,7 @@
 export const SITE = {
   nome: "IDFish",
   significado: "Índice de Fisgada",
-  regiao: "Cerro Negro, SC",
+  regiao: "Serra Catarinense",
   descricao:
-    "A nota do dia para pescar em Cerro Negro (SC): por espécie, por hora, com clima real e sem enrolação sobre a lua.",
+    "A nota do dia para pescar na Serra Catarinense: por espécie, por hora, com seis modelos de clima, rios e represas medidos e sem enrolação sobre a lua.",
 } as const;

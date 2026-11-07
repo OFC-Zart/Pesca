@@ -13,7 +13,7 @@ const corpo = Instrument_Sans({ subsets: ["latin", "latin-ext"], variable: "--fo
 const mono = DM_Mono({ subsets: ["latin", "latin-ext"], weight: ["400", "500"], variable: "--fonte-mono" });
 
 export const metadata: Metadata = {
-  title: { default: `${SITE.nome} · ${SITE.significado} em ${SITE.regiao}`, template: `%s · ${SITE.nome}` },
+  title: { default: `${SITE.nome} · ${SITE.significado} na ${SITE.regiao}`, template: `%s · ${SITE.nome}` },
   description: SITE.descricao,
   applicationName: SITE.nome,
   robots: { index: false, follow: false },

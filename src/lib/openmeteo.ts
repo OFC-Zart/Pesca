@@ -6,6 +6,8 @@ const VARS = "temperature_2m,pressure_msl,wind_speed_10m,precipitation,cloud_cov
 export interface ClimaBase {
   serie: SerieClima;
   offsetSeg: number;
+  /** Altitude do ponto usada pelo Open-Meteo, em metros: serve para corrigir a temperatura da estação. */
+  elevacao: number;
 }
 
 function comum(lat: number, lon: number) {
@@ -14,12 +16,13 @@ function comum(lat: number, lon: number) {
 
 export async function buscarClima(lat: number, lon: number): Promise<ClimaBase> {
   const url = `https://api.open-meteo.com/v1/forecast?${comum(lat, lon)}&hourly=${VARS},weather_code&past_days=92&forecast_days=16`;
-  const r = await fetch(url, { next: { revalidate: UMA_HORA } });
+  const r = await fetch(url, { next: { revalidate: UMA_HORA }, signal: AbortSignal.timeout(10_000) });
   if (!r.ok) throw new Error(`Open-Meteo respondeu ${r.status}`);
   const j = await r.json();
   const h = j.hourly;
   return {
     offsetSeg: j.utc_offset_seconds,
+    elevacao: j.elevation,
     serie: {
       tempo: h.time,
       temp: h.temperature_2m,
@@ -33,15 +36,25 @@ export async function buscarClima(lat: number, lon: number): Promise<ClimaBase> 
   };
 }
 
+export type EnsembleBruto = Record<string, (number | null)[]> & { time: string[] };
+
+/** Os 31 cenários do ensemble GFS, como vêm da API. */
+export async function buscarEnsembleBruto(lat: number, lon: number): Promise<EnsembleBruto> {
+  const url = `https://ensemble-api.open-meteo.com/v1/ensemble?${comum(lat, lon)}&hourly=${VARS}&models=gfs025&past_days=1&forecast_days=8`;
+  const r = await fetch(url, { next: { revalidate: UMA_HORA }, signal: AbortSignal.timeout(10_000) });
+  if (!r.ok) throw new Error(`Ensemble respondeu ${r.status}`);
+  return (await r.json()).hourly;
+}
+
+export async function buscarEnsemble(lat: number, lon: number, base: SerieClima): Promise<SerieClima[]> {
+  return montarCenarios(await buscarEnsembleBruto(lat, lon), base);
+}
+
 /**
- * Busca os cenários do ensemble GFS (31 versões) e devolve uma série por cenário.
+ * Uma série por cenário do ensemble.
  * Os meses anteriores, que aquecem o modelo da água, vêm da série principal: o passado é o mesmo em todos os cenários.
  */
-export async function buscarEnsemble(lat: number, lon: number, base: SerieClima): Promise<SerieClima[]> {
-  const url = `https://ensemble-api.open-meteo.com/v1/ensemble?${comum(lat, lon)}&hourly=${VARS}&models=gfs025&past_days=1&forecast_days=8`;
-  const r = await fetch(url, { next: { revalidate: UMA_HORA } });
-  if (!r.ok) throw new Error(`Ensemble respondeu ${r.status}`);
-  const h = (await r.json()).hourly as Record<string, (number | null)[]> & { time: string[] };
+export function montarCenarios(h: EnsembleBruto, base: SerieClima): SerieClima[] {
 
   const indice = new Map(h.time.map((t, i) => [t, i]));
   const sufixos = Object.keys(h)

@@ -26,7 +26,7 @@ export function FaixaPiracema() {
         </span>
       </summary>
       <div className="mx-auto max-w-6xl px-4 pb-4 text-sm">
-        <p className="mb-2 text-osso/80">De 1º de outubro a 31 de janeiro, na {PIRACEMA.bacia}, que inclui o Rio Canoas e os afluentes de Cerro Negro:</p>
+        <p className="mb-2 text-osso/80">De 1º de outubro a 31 de janeiro, na {PIRACEMA.bacia}, que inclui os rios Canoas e Pelotas e os afluentes da Serra:</p>
         <ul className="grid gap-1.5 sm:grid-cols-2">
           {PIRACEMA.regras.map((r) => (
             <li key={r} className="flex gap-2">

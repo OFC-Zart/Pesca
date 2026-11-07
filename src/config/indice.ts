@@ -7,18 +7,52 @@
  * os primeiros a mudar quando houver pescarias registradas.
  */
 
-/** Pesos das condições do momento. O que sobra para a lua é pouco porque os estudos mostram pouco efeito. */
-export const PESOS = {
+export type TipoAgua = "rio" | "acude" | "represa" | "rio_truta";
+export type CondicaoId = "tendencia" | "vento" | "chuva" | "nuvens" | "pressao" | "lua" | "rio" | "represa";
+export type FatorId = CondicaoId | "agua";
+export type Pesos = Record<CondicaoId, number>;
+
+/** Pesos das condições no açude. O que sobra para a lua é pouco porque os estudos mostram pouco efeito. */
+export const PESOS: Pesos = {
   tendencia: 0.3,
   vento: 0.2,
   chuva: 0.2,
   nuvens: 0.15,
   pressao: 0.1,
   lua: 0.05,
-} as const;
+  rio: 0,
+  represa: 0,
+};
 
-export type CondicaoId = keyof typeof PESOS;
-export type FatorId = CondicaoId | "agua";
+/**
+ * Pesos pedidos para rio e represa, escritos como numa soma que inclui a água.
+ * Aqui a água multiplica a nota inteira (é o apetite), então ela sai da lista e o resto é reescalado para somar 1:
+ * no rio, por exemplo, o nível vale 0,10 / 0,70 ≈ 14% das condições.
+ */
+const PEDIDO_RIO = { agua: 0.3, tendencia: 0.1, pressao: 0.15, vento: 0.1, chuva: 0.1, rio: 0.1, lua: 0.075, nuvens: 0.075 };
+const PEDIDO_REPRESA = { agua: 0.3, tendencia: 0.1, pressao: 0.15, vento: 0.1, chuva: 0.1, represa: 0.1, lua: 0.075, nuvens: 0.075 };
+
+function semAgua(p: Partial<Record<FatorId, number>>): Pesos {
+  const { agua: _agua, ...resto } = p;
+  const soma = Object.values(resto).reduce((a, b) => a + (b ?? 0), 0);
+  const base: Pesos = { tendencia: 0, vento: 0, chuva: 0, nuvens: 0, pressao: 0, lua: 0, rio: 0, represa: 0 };
+  for (const [k, v] of Object.entries(resto)) base[k as CondicaoId] = (v ?? 0) / soma;
+  return base;
+}
+
+export const PESOS_POR_TIPO: Record<TipoAgua, Pesos> = {
+  acude: PESOS,
+  rio_truta: PESOS,
+  rio: semAgua(PEDIDO_RIO),
+  represa: semAgua(PEDIDO_REPRESA),
+};
+
+/** Rio: subida em 24 h (cm) e a nota. Cheia acima de 1 m também acende o aviso. Entre 10 e 30 cm é AJUSTE nosso. */
+export const RIO = { estavel: 10, subindoDevagar: 0.8, subindo: { de: 30, nota: 0.4 }, cheia: { de: 100, nota: 0.1 }, descendo: 0.9 } as const;
+/** Represa: queda do nível em 7 dias (m). Subir ou ficar parada não tira nada. */
+export const REPRESA = { queda: { de: 1, nota: 0.6 }, quedaForte: { de: 3, nota: 0.3 } } as const;
+/** Nível de rio só vale para hoje e amanhã: depois disso não há previsão de nível. */
+export const DIAS_COM_NIVEL_DO_RIO = 2;
 
 /** Condições medianas pesam bastante: "Excelente" fica para o dia em que quase tudo ajuda. */
 export const EXPOENTE_CONDICOES = 2;
@@ -27,9 +61,8 @@ export const EXPOENTE_APETITE = 1.3;
 /** A nota do dia é a média das melhores horas: um dia vale pela janela boa que ele oferece. */
 export const HORAS_DA_NOTA = 4;
 /** Sobe a cada mudança na fórmula, para separar os registros de cada versão na hora de calibrar. */
-export const VERSAO_MODELO = 2;
+export const VERSAO_MODELO = 3;
 
-export type TipoAgua = "rio" | "acude" | "represa" | "rio_truta";
 export type Periodo = "diurno" | "noturno" | "crepuscular" | "misto";
 
 export interface Especie {
@@ -84,12 +117,12 @@ export const LEGENDA_PERIODO: Record<Periodo, string> = {
   misto: "O dia todo",
 };
 
-/** Locais iniciais. Açude e represa usam o centro até você cadastrar as coordenadas reais. */
+/** Locais iniciais. Açude e represa usam o centro até você cadastrar as coordenadas reais. A represa padrão é a da UHE Campos Novos. */
 export const LOCAIS_PADRAO = [
   { id: "acude-cerro-negro", nome: "Açude · região de Cerro Negro", tipo: "acude", lat: -27.8, lon: -50.88 },
   { id: "centro-cerro-negro", nome: "Rio · Centro de Cerro Negro", tipo: "rio", lat: -27.8, lon: -50.88 },
-  { id: "represa-cerro-negro", nome: "Represa · clima de Cerro Negro", tipo: "represa", lat: -27.8, lon: -50.88 },
-] as const satisfies readonly { id: string; nome: string; tipo: TipoAgua; lat: number; lon: number }[];
+  { id: "represa-cerro-negro", nome: "Represa · clima de Cerro Negro", tipo: "represa", lat: -27.8, lon: -50.88, represa: "campos-novos" },
+] as const satisfies readonly { id: string; nome: string; tipo: TipoAgua; lat: number; lon: number; represa?: string }[];
 
 export const NOME_TIPO_AGUA: Record<TipoAgua, string> = {
   rio: "Rio",

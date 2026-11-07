@@ -1,9 +1,9 @@
-import { ChevronDown, Clock, Sprout } from "lucide-react";
+import { ChevronDown, Clock, Satellite, Sprout } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { ESPECIES, PESOS, type CondicaoId, type EspecieId } from "@/config/indice";
+import { ESPECIES, PESOS_POR_TIPO, type CondicaoId, type EspecieId } from "@/config/indice";
 import { diaMes, horaTexto } from "@/lib/formato";
 import { apetite, condicoes, fmt } from "@/lib/indice/calculo";
-import type { DiaPrevisao, Local, NotaEspecie } from "@/lib/indice/tipos";
+import type { DiaPrevisao, InfoFontes, Local, NotaEspecie, Origem } from "@/lib/indice/tipos";
 import { COR_FATOR, ICONE_FATOR, corDoFator } from "@/lib/visual";
 import { IconeLua } from "./IconeLua";
 import { TituloSecao } from "./TituloSecao";
@@ -55,44 +55,71 @@ function Peca({ nome, valor, cor }: { nome: string; valor: number; cor: string }
 
 const sinal = (n: number) => `${n > 0 ? "+" : ""}${fmt(n)}`;
 
-export function Fatores({ dia, especie, nota, local }: { dia: DiaPrevisao; especie: EspecieId; nota: NotaEspecie; local: Local }) {
+const ROTULO_ORIGEM: Record<Origem["tipo"], string> = { observado: "Medido", previsto: "Previsto", estimado: "Estimado", misto: "Medido + previsto" };
+
+/** De onde veio o número: medido numa estação, previsto pelos modelos ou estimado. */
+function LinhaOrigem({ origem, ehHoje }: { origem?: Origem; ehHoje: boolean }) {
+  if (!origem) return null;
+  const tipo = ehHoje ? origem.tipo : origem.tipo === "observado" ? "observado" : "previsto";
+  return (
+    <p className="mt-2 flex items-start gap-1.5 text-xs leading-snug text-pedra">
+      <Satellite size={13} className="mt-px shrink-0" aria-hidden />
+      <span>
+        <strong className="font-semibold text-osso/80">{ROTULO_ORIGEM[tipo]}.</strong> {ehHoje ? origem.hoje : origem.depois}
+      </span>
+    </p>
+  );
+}
+
+const minuscula = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
+
+export function Fatores({ dia, especie, nota, local, fontes, ehHoje }: { dia: DiaPrevisao; especie: EspecieId; nota: NotaEspecie; local: Local; fontes: InfoFontes; ehHoje: boolean }) {
   const b = nota.base;
   const f = nota.fatores;
   const a = dia.astro;
   const e = ESPECIES[especie];
   const calibrado = local.calibA != null;
   const hora = `${String(b.hora).padStart(2, "0")}h`;
+  const PESOS = PESOS_POR_TIPO[local.tipo] ?? PESOS_POR_TIPO.acude;
+  const o = fontes.origens;
+  const rio = fontes.rio;
+  const represa = fontes.represa;
 
-  const linhas: { id: CondicaoId; nome: string; valor: string; icone?: ReactNode; explicacao: ReactNode }[] = [
+  const linhas: { id: CondicaoId; nome: string; valor: string; icone?: ReactNode; explicacao: ReactNode; origem?: Origem }[] = [
     {
       id: "tendencia",
       nome: "Tendência da água",
       valor: `${sinal(b.deltaAgua48h)} °C em 48 h`,
       explicacao: "O que mais pesa depois da própria temperatura. Quando a água esfria de repente, como numa frente fria, o peixe para de comer por um tempo.",
+      origem: o.temp,
     },
     {
       id: "vento",
       nome: "Vento",
       valor: `${fmt(b.vento)} m/s`,
       explicacao: "De 1 a 5 m/s é o melhor: mexe a água, oxigena e reduz a luz. Vento forte atrapalha e, acima de 12 m/s, é perigoso.",
+      origem: o.vento,
     },
     {
       id: "chuva",
       nome: "Chuva em 48 h",
       valor: `${fmt(b.chuva48h)} mm`,
       explicacao: `Chuva forte embarra a água e atrapalha quem caça com a visão. Quanto pesa depende do peixe: ${e.artigo} ${e.nome.toLowerCase()} fica com ${Math.round(e.chuvaForte * 100)}% depois de muita chuva.`,
+      origem: o.chuva,
     },
     {
       id: "nuvens",
       nome: "Nuvens",
       valor: `${fmt(b.nuvens, 0)}%`,
       explicacao: "Só conta de dia. De 40 a 80% tira a luz forte da água sem fechar o tempo, e cada espécie reage de um jeito ao céu limpo.",
+      origem: o.nuvens,
     },
     {
       id: "pressao",
       nome: "Pressão",
       valor: `${sinal(b.deltaPressao24h)} hPa em 24 h`,
-      explicacao: "Não há prova de que o peixe sinta o barômetro. A pressão entra com peso baixo porque, subindo rápido, ela denuncia a frente fria.",
+      explicacao: "Não há prova de que o peixe sinta o barômetro. A pressão entra porque, subindo rápido, ela denuncia a frente fria.",
+      origem: o.pressao,
     },
     {
       id: "lua",
@@ -101,7 +128,7 @@ export function Fatores({ dia, especie, nota, local }: { dia: DiaPrevisao; espec
       valor: `${Math.round(a.iluminacao * 100)}% iluminada`,
       explicacao: (
         <>
-          Sem exagero: os estudos mostram efeito pequeno, por isso a lua vale só 5% das condições, e a tabela solunar ficou de fora.
+          Sem exagero: os estudos mostram efeito pequeno, por isso a lua vale só {Math.round(PESOS.lua * 100)}% das condições aqui, e a tabela solunar ficou de fora.
           {a.nascerLua !== null || a.porLua !== null ? (
             <span className="mt-1 block font-mono text-xs text-pedra">
               {a.nascerLua !== null && `Nasce ${horaTexto(a.nascerLua)} · `}
@@ -112,10 +139,36 @@ export function Fatores({ dia, especie, nota, local }: { dia: DiaPrevisao; espec
         </>
       ),
     },
+    {
+      id: "rio",
+      nome: "Nível do rio",
+      valor: rio ? `${sinal(rio.variacao)} cm em 24 h` : "sem medida",
+      explicacao: rio
+        ? "Rio subindo traz água barrenta e correnteza; mais de 1 m em 24 h é cheia e perigo. Estável é o melhor. O nível só vale para hoje e amanhã."
+        : "Nenhuma estação da ANA respondeu para este rio, então o nível não tirou nada da nota. Em Locais dá para escolher a estação certa.",
+      origem: o.rio,
+    },
+    {
+      id: "represa",
+      nome: "Nível da represa",
+      valor: represa ? `${represa.variacao > 0 ? "+" : ""}${fmt(represa.variacao, 2)} m em 7 dias` : "sem medida",
+      explicacao: represa ? (
+        <>
+          Represa esvaziando expõe a margem e espalha o peixe: queda de 1 a 3 m em 7 dias tira bastante, e acima de 3 m tira mais. Subir ou ficar parada não tira nada.
+          <span className="mt-1 block font-mono text-xs text-pedra">
+            Nível {fmt(represa.atual, 2)} m{represa.volume != null && represa.volume <= 100 ? ` · ${fmt(represa.volume, 0)}% do volume útil` : ""}
+          </span>
+        </>
+      ) : (
+        "Nem o ONS nem a ANA deram o nível desta represa agora, então ele não tirou nada da nota."
+      ),
+      origem: o.represa,
+    },
   ];
 
   const IconeAgua = ICONE_FATOR.agua;
   const maiorPeso = Math.max(...Object.values(PESOS));
+  const visiveis = linhas.filter((l) => PESOS[l.id] > 0);
 
   return (
     <section className="revelar" aria-labelledby="titulo-fatores">
@@ -127,7 +180,7 @@ export function Fatores({ dia, especie, nota, local }: { dia: DiaPrevisao; espec
       <div className="mt-2 grid grid-cols-3 gap-2">
         <Peca nome="Água" valor={f.agua} cor={COR_FATOR.agua} />
         <Peca nome="Horário" valor={nota.horario} cor="#f2a93b" />
-        <Peca nome="Condições" valor={condicoes(f) ** 2} cor="#a9cb54" />
+        <Peca nome="Condições" valor={condicoes(f, PESOS) ** 2} cor="#a9cb54" />
       </div>
 
       <div className="painel mt-2.5 divide-y divide-osso/10 overflow-hidden">
@@ -156,6 +209,12 @@ export function Fatores({ dia, especie, nota, local }: { dia: DiaPrevisao; espec
                 : "Sem termômetro, a água é estimada pelo ar, pelo sol e pela profundidade. Registre medições de termômetro para corrigir este ponto."}
             </p>
             <CurvaAgua especie={especie} temp={b.tempAgua} />
+            {o.temp && (
+              <LinhaOrigem
+                origem={{ ...o.temp, hoje: `O ar que esquenta a água: ${minuscula(o.temp.hoje)}`, depois: `O ar que esquenta a água: ${minuscula(o.temp.depois)}` }}
+                ehHoje={ehHoje}
+              />
+            )}
           </div>
         </details>
 
@@ -181,7 +240,7 @@ export function Fatores({ dia, especie, nota, local }: { dia: DiaPrevisao; espec
           </div>
         </details>
 
-        {linhas.map(({ id, nome, icone, valor, explicacao }, i) => {
+        {visiveis.map(({ id, nome, icone, valor, explicacao, origem }, i) => {
           const Icone = ICONE_FATOR[id];
           const peso = PESOS[id];
           return (
@@ -201,7 +260,10 @@ export function Fatores({ dia, especie, nota, local }: { dia: DiaPrevisao; espec
                 </span>
                 <ChevronDown size={18} className="seta shrink-0 text-pedra transition-transform" aria-hidden />
               </summary>
-              <div className="px-3.5 pb-3.5 pl-[4.1rem] text-sm leading-relaxed text-osso/90">{explicacao}</div>
+              <div className="px-3.5 pb-3.5 pl-[4.1rem] text-sm leading-relaxed text-osso/90">
+                {explicacao}
+                <LinhaOrigem origem={origem} ehHoje={ehHoje} />
+              </div>
             </details>
           );
         })}

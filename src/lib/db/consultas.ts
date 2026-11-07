@@ -28,6 +28,13 @@ export async function criarLocal(l: Omit<Local, "calibA" | "calibB" | "calibN">)
   await db.insert(locais).values(l);
 }
 
+export async function editarLocal(id: string, dados: Partial<Pick<Local, "estacao" | "represa" | "profundidade">>) {
+  const db = getDb();
+  if (!db) throw new Error("Banco não configurado");
+  const [l] = await db.update(locais).set(dados).where(eq(locais.id, id)).returning();
+  return l ?? null;
+}
+
 export async function gravarSaida(s: EntradaSaida, snapshot: { nota: number | null; fatores: unknown; aguaModelo: number | null }, usuarioId: number | null = null) {
   const db = getDb();
   if (!db) throw new Error("Banco não configurado");

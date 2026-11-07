@@ -129,7 +129,7 @@ describe("condições do momento", () => {
   });
 });
 
-const tudoBom: Fatores = { agua: 1, tendencia: 1, pressao: 1, vento: 1, chuva: 1, lua: 1, nuvens: 1 };
+const tudoBom: Fatores = { agua: 1, tendencia: 1, pressao: 1, vento: 1, chuva: 1, lua: 1, nuvens: 1, rio: 1, represa: 1 };
 
 describe("a nota é um produto", () => {
   it("tudo perfeito dá 100", () => {
@@ -146,7 +146,7 @@ describe("a nota é um produto", () => {
   });
 
   it("confere a conta à mão", () => {
-    const f: Fatores = { agua: 0.8, tendencia: 0.9, vento: 1, chuva: 1, nuvens: 1, pressao: 0.85, lua: 0.75 };
+    const f: Fatores = { agua: 0.8, tendencia: 0.9, vento: 1, chuva: 1, nuvens: 1, pressao: 0.85, lua: 0.75, rio: 1, represa: 1 };
     const c = 0.3 * 0.9 + 0.2 + 0.2 + 0.15 + 0.1 * 0.85 + 0.05 * 0.75;
     expect(condicoes(f)).toBeCloseTo(c);
     expect(notaDaHora(f, 0.9)).toBe(Math.round(100 * 0.8 * 0.9 * c ** 2));
@@ -407,7 +407,7 @@ describe("previsão montada", () => {
     expect(p.dias[8].especies.traira.nota).toBeNull();
     expect(p.dias[8].especies.traira.fatores.agua).toBeGreaterThan(0);
     expect(p.fonteConfianca).toBe("tabela");
-    expect(p.versaoModelo).toBe(2);
+    expect(p.versaoModelo).toBe(3);
   });
 
   it("inverno: peixe de água quente despenca, e jundiá e carpa aguentam melhor", () => {

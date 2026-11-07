@@ -1,4 +1,4 @@
-import { Cloud, CloudRain, Gauge, Moon, Thermometer, TrendingUp, Wind, type LucideIcon } from "lucide-react";
+import { Cloud, CloudRain, Dam, Gauge, Moon, Thermometer, TrendingUp, Waves, Wind, type LucideIcon } from "lucide-react";
 import type { EspecieId, FatorId } from "@/config/indice";
 
 /** Cada peixe tem sua cor. O nome sempre acompanha, então a cor nunca é a única pista. */
@@ -23,6 +23,8 @@ export const COR_FATOR: Record<FatorId, string> = {
   chuva: "#7fb0ff",
   lua: "#ffe6a0",
   nuvens: "#cfd6de",
+  rio: "#5fb8e8",
+  represa: "#8fd1c4",
 };
 
 export const ICONE_FATOR: Record<FatorId, LucideIcon> = {
@@ -33,6 +35,8 @@ export const ICONE_FATOR: Record<FatorId, LucideIcon> = {
   chuva: CloudRain,
   lua: Moon,
   nuvens: Cloud,
+  rio: Waves,
+  represa: Dam,
 };
 
 /** Verde quando o fator ajuda, âmbar quando fica no meio, terracota quando atrapalha. */
