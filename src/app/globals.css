@@ -1,0 +1,202 @@
+@import "tailwindcss";
+
+@theme {
+  --color-breu: #0b0f0a;
+  --color-mata: #11170f;
+  --color-sombra: #182015;
+  --color-folha: #232e1d;
+  --color-musgo: #6c9630;
+  --color-broto: #a9cb54;
+  --color-brotinho: #c9e96b;
+  --color-osso: #ece9dc;
+  --color-pedra: #a7ab9b;
+  --color-cinza: #6f7468;
+  --color-terra: #2c2015;
+  --color-casca: #6b4a2c;
+  --color-barro: #b08a5b;
+  --color-boia: #de4331;
+  --color-boia-clara: #f26a56;
+  --color-sangue: #4d130e;
+
+  --font-display: var(--fonte-display);
+  --font-sans: var(--fonte-corpo);
+  --font-mono: var(--fonte-mono);
+}
+
+html {
+  background: var(--color-breu);
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-breu);
+  color: var(--color-osso);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Curvas de nível, como um mapa de campo, por trás de tudo. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(120% 70% at 85% -5%, rgb(95 127 58 / 0.22), transparent 60%),
+    radial-gradient(90% 60% at 0% 100%, rgb(107 74 44 / 0.2), transparent 65%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: url("/topo.svg") center / 1200px;
+  opacity: 0.09;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brotinho);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.rotulo {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-pedra);
+}
+
+.painel {
+  background: rgb(24 32 21 / 0.86);
+  border: 1px solid rgb(236 233 220 / 0.09);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+}
+
+.sem-barra {
+  scrollbar-width: none;
+}
+.sem-barra::-webkit-scrollbar {
+  display: none;
+}
+
+/* Cartão da boia: a nota lida como uma pescada. */
+.cena {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgb(236 233 220 / 0.1);
+  background: linear-gradient(180deg, #1c2618 0%, #141b11 62%);
+  isolation: isolate;
+}
+.agua {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: var(--agua, 104px);
+  z-index: 3;
+  background: linear-gradient(180deg, rgb(62 92 44 / 0.78) 0%, rgb(20 34 18 / 0.95) 100%);
+  border-top: 1px solid rgb(201 233 107 / 0.45);
+}
+.boia {
+  position: absolute;
+  right: 15%;
+  bottom: var(--agua, 104px);
+  z-index: 2;
+  width: 58px;
+  transform-origin: 50% 100%;
+  transform: translateY(var(--mergulho, 20px)) rotate(var(--inclina, 4deg));
+  animation: balanco var(--ritmo, 4s) ease-in-out infinite;
+}
+.onda {
+  position: absolute;
+  right: calc(15% + 29px);
+  bottom: calc(var(--agua, 104px) - 9px);
+  z-index: 4;
+  width: 40px;
+  height: 18px;
+  margin-right: -20px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(201 233 107 / 0.75);
+  opacity: 0;
+  animation: onda var(--ritmo, 4s) ease-out infinite;
+  animation-delay: var(--atraso, 0s);
+}
+.peixe {
+  animation: nado 3.4s ease-in-out infinite;
+  animation-delay: var(--atraso, 0s);
+}
+
+@keyframes balanco {
+  0%, 100% { transform: translateY(var(--mergulho, 20px)) rotate(var(--inclina, 4deg)); }
+  50% { transform: translateY(calc(var(--mergulho, 20px) + var(--amplitude, 5px))) rotate(calc(var(--inclina, 4deg) * -0.5)); }
+}
+@keyframes onda {
+  0% { transform: scale(0.7); opacity: 0.85; }
+  100% { transform: scale(5); opacity: 0; }
+}
+@keyframes nado {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+
+/* Capim do gráfico por hora. */
+.lamina {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: brisa 5s ease-in-out infinite;
+  animation-delay: var(--atraso, 0s);
+  transition: fill 0.15s, opacity 0.15s;
+}
+@keyframes brisa {
+  0%, 100% { transform: skewX(0deg); }
+  50% { transform: skewX(-2.2deg); }
+}
+
+@keyframes aparece {
+  from { transform: translateY(8px); }
+  to { transform: none; }
+}
+.aparece {
+  animation: aparece 0.35s ease-out both;
+}
+
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details[open] .seta {
+  transform: rotate(180deg);
+}
+
+input, select, textarea {
+  font-size: 16px; /* evita o zoom automático no iPhone */
+}
+.campo {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.625rem 0.875rem;
+  border-radius: 10px;
+  background: var(--color-mata);
+  border: 1px solid rgb(236 233 220 / 0.16);
+  color: var(--color-osso);
+}
+.campo:focus {
+  outline: none;
+  border-color: var(--color-broto);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .onda { opacity: 0.4; }
+}
