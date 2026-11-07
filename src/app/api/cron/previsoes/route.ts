@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ESPECIE_IDS } from "@/config/indice";
 import { getDb } from "@/lib/db";
-import { listarLocais } from "@/lib/db/consultas";
+import { limparPrevisoesAntigas, listarLocais } from "@/lib/db/consultas";
 import { previsoes } from "@/lib/db/schema";
 import { gerarPrevisao, hojeEmSaoPaulo } from "@/lib/indice/previsao";
 
@@ -36,5 +36,6 @@ export async function GET(req: Request) {
     await db.insert(previsoes).values(valores).onConflictDoNothing();
     linhas += valores.length;
   }
-  return NextResponse.json({ ok: true, linhas });
+  const apagadas = await limparPrevisoesAntigas(hoje);
+  return NextResponse.json({ ok: true, linhas, apagadas });
 }

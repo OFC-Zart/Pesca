@@ -12,7 +12,7 @@ const db = drizzle(pg, { schema });
 
 vi.mock("@/lib/db", () => ({ getDb: () => db }));
 
-const { gravarSaida, listarLocais, listarSaidas, recalibrarLocal } = await import("@/lib/db/consultas");
+const { gravarSaida, limparPrevisoesAntigas, listarLocais, listarSaidas, recalibrarLocal } = await import("@/lib/db/consultas");
 
 const entrada = (extra = {}) => ({
   clienteId: randomUUID(),
@@ -88,6 +88,18 @@ describe("banco", () => {
     await gravarSaida(entrada({ localId, tempAgua: 20 }), { nota: null, fatores: null, mediaAr: null });
     const [l] = await db.select().from(schema.locais).where(eq(schema.locais.id, localId));
     expect(l.calibN).toBe(0);
+  });
+
+  it("limpeza apaga só previsões com mais de 90 dias e mantém as pescarias", async () => {
+    const linha = (criadoEm: string) => ({ dataAlvo: criadoEm, criadoEm, localId: "centro-cerro-negro", especie: "traira", nota: 50 });
+    const antes = (await listarSaidas())!.length;
+    await db.insert(schema.previsoes).values([linha("2026-08-07"), linha("2026-08-08"), linha("2026-11-06")]);
+
+    expect(await limparPrevisoesAntigas("2026-11-06")).toBe(1);
+
+    const restantes = await db.select().from(schema.previsoes);
+    expect(restantes.map((r) => r.criadoEm).sort()).toEqual(["2026-08-08", "2026-11-06"]);
+    expect((await listarSaidas())!.length).toBe(antes);
   });
 
   it("rejeita local inexistente", async () => {

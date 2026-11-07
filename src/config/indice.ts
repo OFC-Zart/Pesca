@@ -79,6 +79,9 @@ export const AGUA = {
   rio_truta: { dias: 3, a: 3, b: 0.7 },
 } as const satisfies Record<TipoAgua, { dias: number; a: number; b: number }>;
 
+/** A cópia diária das previsões só mede a confiança do tempo: depois disso, ela é apagada. */
+export const DIAS_GUARDAR_PREVISOES = 90;
+
 /** Medições de termômetro necessárias para trocar a estimativa pela regressão do local. */
 export const MEDICOES_PARA_CALIBRAR = 10;
 

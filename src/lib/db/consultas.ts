@@ -1,10 +1,10 @@
-import { desc, eq, inArray, isNotNull, and } from "drizzle-orm";
-import { LOCAIS_PADRAO, MEDICOES_PARA_CALIBRAR, type TipoAgua } from "@/config/indice";
+import { and, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
+import { DIAS_GUARDAR_PREVISOES, LOCAIS_PADRAO, MEDICOES_PARA_CALIBRAR, type TipoAgua } from "@/config/indice";
 import { regressao } from "@/lib/indice/calculo";
 import type { Local } from "@/lib/indice/tipos";
 import type { EntradaSaida } from "@/lib/esquemas";
 import { getDb } from "./index";
-import { capturas, locais, medicoesAgua, saidas } from "./schema";
+import { capturas, locais, medicoesAgua, previsoes, saidas } from "./schema";
 
 const PADRAO: Local[] = LOCAIS_PADRAO.map((l) => ({ ...l }));
 
@@ -108,4 +108,17 @@ export async function listarSaidas(limite = 200) {
     nota: l.nota,
     capturas: caps.filter((c) => c.saidaId === l.id).map((c) => ({ especie: c.especie, quantidade: c.quantidade })),
   }));
+}
+
+/** Apaga as cópias de previsão feitas há mais de 90 dias. Pescarias e medições nunca são apagadas. */
+export async function limparPrevisoesAntigas(hoje: string): Promise<number> {
+  const db = getDb();
+  if (!db) return 0;
+  const corte = new Date(`${hoje}T12:00:00Z`);
+  corte.setUTCDate(corte.getUTCDate() - DIAS_GUARDAR_PREVISOES);
+  const apagadas = await db
+    .delete(previsoes)
+    .where(lt(previsoes.criadoEm, corte.toISOString().slice(0, 10)))
+    .returning({ id: previsoes.id });
+  return apagadas.length;
 }
