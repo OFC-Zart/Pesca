@@ -29,8 +29,7 @@ export function Cabecalho() {
   if (naEntrada) return null;
 
   return (
-    // Instalado no iPhone, o app desenha por baixo da barra de status: o cabeçalho reserva esse espaço.
-    <header className="sticky top-0 z-40 border-b border-osso/10 bg-breu/90 pt-[env(safe-area-inset-top)] backdrop-blur">
+    <header className="topo-seguro sticky top-0 z-40 border-b border-osso/10 bg-breu/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
         <Link href="/" aria-label={`${SITE.nome}, início`}>
           <Logo />

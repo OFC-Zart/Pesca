@@ -625,6 +625,32 @@ body::after {
   }
 }
 
+/*
+ * Instalado como app, o site desenha até a borda da tela. O sistema deveria informar o espaço das
+ * barras em env(), mas desde o iOS 26.1 pode informar 0. Por isso há uma folga mínima garantida.
+ * No navegador comum, nenhuma barra cobre a página e só vale o valor do sistema.
+ */
+.topo-seguro {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.base-segura {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .topo-seguro {
+    padding-top: max(calc(env(safe-area-inset-top, 0px) + 6px), 44px);
+  }
+  /* Só o iPhone entende esta propriedade: 60 px cobrem até a Dynamic Island. */
+  @supports (-webkit-touch-callout: none) {
+    .topo-seguro {
+      padding-top: max(calc(env(safe-area-inset-top, 0px) + 6px), 60px);
+    }
+    .base-segura {
+      padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
+    }
+  }
+}
+
 /* ---------- Navegação ---------- */
 .fab-boia {
   display: grid;
