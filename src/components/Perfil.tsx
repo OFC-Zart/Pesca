@@ -5,6 +5,7 @@ import { LogOut } from "lucide-react";
 import { PEIXE_PADRAO, type PeixeId } from "@/config/peixes";
 import { esquecerPerfil, gravarPerfil, lerPerfil, type PerfilLocal } from "@/lib/armazem";
 import { Avatar } from "./Avatar";
+import { Convite } from "./Convite";
 import { SeletorPeixe } from "./SeletorPeixe";
 
 export function Perfil() {
@@ -94,7 +95,9 @@ export function Perfil() {
         </button>
       </form>
 
-      <button onClick={sair} className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-osso/20 font-semibold hover:bg-osso/5">
+      <Convite />
+
+      <button onClick={sair}className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-osso/20 font-semibold hover:bg-osso/5">
         <LogOut size={18} aria-hidden /> Sair deste aparelho
       </button>
     </div>

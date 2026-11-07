@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Eye, EyeOff, PartyPopper } from "lucide-react";
 import { PEIXE_PADRAO, type PeixeId } from "@/config/peixes";
 import { SeletorPeixe } from "./SeletorPeixe";
 
@@ -48,6 +48,17 @@ export function FormEntrar() {
   const [codigo, setCodigo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [viaConvite, setViaConvite] = useState(false);
+
+  // Link de convite: já abre em "Criar conta" com o código pronto, e o código sai da barra de endereço.
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get("convite");
+    if (!c) return;
+    setCodigo(c);
+    setViaConvite(true);
+    setModo("criar");
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   const trocarModo = (m: Modo) => {
     setModo(m);
@@ -71,6 +82,8 @@ export function FormEntrar() {
       }
       const j = await r.json().catch(() => null);
       setErro(j?.erro ?? "Não foi possível continuar. Tente de novo.");
+      // Convite antigo, de um código que já mudou: mostra o campo para digitar o novo.
+      if (r.status === 401) setViaConvite(false);
     } catch {
       setErro("Sem conexão. Tente de novo quando o sinal voltar.");
     }
@@ -92,6 +105,15 @@ export function FormEntrar() {
           </button>
         ))}
       </div>
+
+      {viaConvite && modo === "criar" && (
+        <p className="flex items-center gap-2 rounded-xl border border-broto/50 bg-folha px-3 py-2.5 text-sm">
+          <PartyPopper size={20} className="shrink-0 text-brotinho" aria-hidden />
+          <span>
+            <strong className="font-semibold">Você foi convidado!</strong> O código do grupo já está preenchido. É só criar sua conta.
+          </span>
+        </p>
+      )}
 
       <form onSubmit={enviar} className="grid grid-cols-[minmax(0,1fr)] gap-4">
         {modo === "criar" && (
@@ -122,21 +144,23 @@ export function FormEntrar() {
         {modo === "criar" && (
           <>
             <SeletorPeixe valor={icone} onMudar={setIcone} />
-            <label className="grid gap-1 text-sm font-medium">
-              Código do grupo
-              <input
-                required
-                name="codigo-grupo"
-                autoComplete="off"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value)}
-                className="campo font-mono"
-              />
-              <span className="font-normal text-pedra">Só precisa dele agora. Peça para quem te passou o link.</span>
-            </label>
+            {!viaConvite && (
+              <label className="grid gap-1 text-sm font-medium">
+                Código do grupo
+                <input
+                  required
+                  name="codigo-grupo"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                  className="campo font-mono"
+                />
+                <span className="font-normal text-pedra">Só precisa dele agora. Peça para quem te passou o link.</span>
+              </label>
+            )}
           </>
         )}
 

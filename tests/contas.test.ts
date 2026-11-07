@@ -229,6 +229,32 @@ describe("perfil", () => {
   });
 });
 
+describe("convite", () => {
+  const verConvite = async () => (await import("@/app/api/convite/route")).GET(new Request("https://idfish.test/api/convite"));
+
+  it("o link leva o código do grupo, codificado para URL", async () => {
+    vi.stubEnv("CODIGO_ACESSO", "PSC N 26");
+    const r = await verConvite();
+    expect(r.status).toBe(200);
+    expect(r.headers.get("cache-control")).toContain("no-store");
+    expect((await r.json()).link).toBe("https://idfish.test/entrar?convite=PSC%20N%2026");
+  });
+
+  it("sem código definido, não há convite", async () => {
+    vi.stubEnv("CODIGO_ACESSO", "");
+    expect((await verConvite()).status).toBe(503);
+  });
+
+  it("só quem entrou consegue pegar o convite", async () => {
+    expect((await proxy(pagina("/api/convite"))).status).toBe(401);
+    expect(seguiu(await proxy(pagina("/api/convite", await criarTokenSessao(1))))).toBe(true);
+  });
+
+  it("o link abre a tela de criar conta sem pedir login", async () => {
+    expect(seguiu(await proxy(pagina("/entrar?convite=PSC-N26")))).toBe(true);
+  });
+});
+
 describe("pescarias da conta", () => {
   it("a saída fica ligada a quem está logado e o histórico mostra nome e fotinha", async () => {
     const t = tokenDoSetCookie(await cadastrar(pedir("/api/cadastro", conta({ nome: "Zé do Açude", icone: "olho-gordo" }))));
